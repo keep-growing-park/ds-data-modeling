@@ -9,7 +9,7 @@
 - **회귀 분석 (2단원)**
   - [x] 2-1 선형 회귀 — `2-1-linear-regression.html`
   - [x] 2-2 다중 회귀 — `2-2-multiple-regression.html`
-  - [ ] 2-3 회귀 모델 평가
+  - [x] 2-3 회귀 모델 평가 — `2-3-regression-evaluation.html`
   - [ ] 2-4 로지스틱 회귀
   - [ ] 2-5 분류 모델 평가
 - **군집 분석 (3단원)**

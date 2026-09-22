@@ -1,0 +1,1156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>회귀 모델 평가 실험실</title>
+<meta name="description" content="고등학교 2학년 데이터 과학 수업용 — 교과서 131~134쪽 '회귀 모델의 평가와 비교'를 함께 펴 놓고 보는 인터랙티브 학습 페이지. 결정계수, 훈련/평가 데이터, 과대적합을 실제 데이터로 확인합니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#EEF2ED;
+    --surface:#FFFFFF;
+    --surface-2:#E2E9E2;
+    --grid-line: rgba(20,32,26,0.09);
+    --ink:#152119;
+    --ink-soft:#4C5C53;
+    --ink-faint:#8A988E;
+    --accent:#0F6E63;
+    --accent-ink:#EAF8F5;
+    --accent-warm:#DE6C3D;
+    --accent-warm-ink:#FCEEE5;
+    --line-b:#B9C8BE;
+    --shadow: 0 1px 2px rgba(15,30,22,0.06), 0 8px 24px -12px rgba(15,30,22,0.18);
+    --radius: 14px;
+    --serif: 'Gowun Batang', 'Noto Serif KR', serif;
+    --sans: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0F1A15; --surface:#16221B; --surface-2:#1E2C24;
+      --grid-line: rgba(233,244,236,0.07);
+      --ink:#E9F3EC; --ink-soft:#A9BEAF; --ink-faint:#6E8478;
+      --accent:#4FD1B9; --accent-ink:#0C2622;
+      --accent-warm:#F0956A; --accent-warm-ink:#3A2113;
+      --line-b:#2C3D33;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -14px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1A15; --surface:#16221B; --surface-2:#1E2C24;
+    --grid-line: rgba(233,244,236,0.07);
+    --ink:#E9F3EC; --ink-soft:#A9BEAF; --ink-faint:#6E8478;
+    --accent:#4FD1B9; --accent-ink:#0C2622;
+    --accent-warm:#F0956A; --accent-warm-ink:#3A2113;
+    --line-b:#2C3D33;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -14px rgba(0,0,0,0.55);
+  }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; }
+  body{
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0/100% 42px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0/42px 100%,
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.7;
+    padding-inline:20px;
+    zoom: 1.4;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  @media (max-width:700px){
+    body{ zoom:1; }
+  }
+  h1,h2,h3{ font-family:var(--serif); font-weight:700; text-wrap:balance; margin:0; color:var(--ink); }
+  a{ color:var(--accent); }
+  img{ max-width:100%; }
+  [hidden]{ display:none!important; }
+  .wrap{ max-width: 860px; margin:0 auto; }
+  .num{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+
+  .topnav{
+    position:sticky; top:0;
+    z-index:20;
+    margin-inline:-20px; padding-inline:20px;
+    background:color-mix(in srgb, var(--bg) 86%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom:1px solid var(--line-b);
+  }
+  .topnav-in{
+    max-width:860px; margin:0 auto;
+    display:flex; align-items:center; gap:18px;
+    padding-block:12px;
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .topnav-in::-webkit-scrollbar{ display:none; }
+  .brand{ font-family:var(--serif); font-weight:700; font-size:15px; white-space:nowrap; flex:none; text-decoration:none; color:var(--ink); }
+  .brand .dot{ color:var(--accent-warm); }
+  .navlinks{ display:flex; gap:4px; }
+  .navlinks a{
+    white-space:nowrap; text-decoration:none; color:var(--ink-soft);
+    font-size:13px; font-weight:600; padding:6px 10px; border-radius:999px;
+  }
+  .navlinks a:hover{ background:var(--surface-2); color:var(--ink); }
+
+  .hero{ padding-block: 44px 8px; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--mono); font-size:12px; letter-spacing:.08em;
+    color:var(--accent); text-transform:uppercase;
+    background:var(--accent-ink); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    padding:5px 10px; border-radius:999px; margin-bottom:16px;
+  }
+  .hero h1{ font-size:clamp(30px,6vw,46px); line-height:1.15; }
+  .hero p.lede{ font-size:17px; color:var(--ink-soft); margin-top:14px; }
+
+  .textbook-banner{
+    margin-top:22px; display:flex; gap:12px; align-items:flex-start;
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:14px 18px; box-shadow:var(--shadow); font-size:13.5px; color:var(--ink-soft);
+  }
+  .textbook-banner .ic{ font-size:20px; flex:none; }
+  .textbook-banner b{ color:var(--ink); }
+
+  .goalbox{
+    margin-top:18px; background:var(--surface); border:1px solid var(--line-b);
+    border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow);
+    display:grid; gap:8px;
+  }
+  .goalbox .lbl{ font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--accent); text-transform:uppercase; }
+  .goalbox ul{ margin:0; padding-left:20px; color:var(--ink-soft); font-size:14.5px; }
+  .goalbox li{ margin-block:4px; }
+  .kw-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .kw{ font-family:var(--mono); font-size:12px; background:var(--surface-2); color:var(--ink-soft); border-radius:6px; padding:3px 8px; }
+
+  section{ padding-block:48px; border-top:1px solid var(--line-b); }
+  section:first-of-type{ border-top:none; }
+  .kicker{ font-family:var(--mono); font-size:12.5px; color:var(--ink-faint); letter-spacing:.04em; }
+  h2{ font-size:clamp(22px,4vw,30px); margin-top:6px; }
+  h3{ font-size:17px; margin-top:28px; }
+  .lead{ color:var(--ink-soft); margin-top:10px; }
+
+  .chat{ display:grid; gap:10px; margin-block:24px; }
+  .bubble{
+    max-width:78%; padding:10px 14px; border-radius:16px; font-size:14.5px;
+    background:var(--surface); border:1px solid var(--line-b); box-shadow:var(--shadow);
+  }
+  .bubble.me{ justify-self:end; background:var(--accent); color:var(--accent-ink); border-color:transparent; border-bottom-right-radius:4px; }
+  .bubble.you{ justify-self:start; border-bottom-left-radius:4px; }
+
+  .formula-card{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:26px; box-shadow:var(--shadow); margin-block:22px;
+    display:grid; gap:18px;
+  }
+  .formula-big{
+    font-family:var(--mono); font-size:clamp(18px,4.2vw,25px); text-align:center;
+    display:flex; justify-content:center; align-items:center; gap:.3em; flex-wrap:wrap;
+  }
+  .formula-big .a{ color:var(--accent-warm); font-weight:600; }
+  .formula-big .b{ color:var(--accent); font-weight:600; }
+  .formula-big .frac{ display:inline-flex; flex-direction:column; align-items:center; font-size:0.82em; line-height:1.3; vertical-align:middle; }
+  .formula-big .frac .fline{ border-bottom:1.5px solid var(--ink); padding-bottom:3px; }
+  .formula-legend{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:520px){ .formula-legend{ grid-template-columns:1fr; } }
+  .flegend-item{ display:flex; gap:10px; align-items:flex-start; }
+  .flegend-swatch{ width:14px; height:14px; border-radius:4px; margin-top:4px; flex:none; }
+  .flegend-item strong{ font-size:14px; }
+  .flegend-item span{ display:block; font-size:13px; color:var(--ink-soft); }
+
+  .tbquote{
+    background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+    border:1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+    border-radius:12px; padding:14px 18px; margin-block:18px;
+  }
+  .tbquote .h{
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    font-size:12px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.04em;
+    margin-bottom:8px;
+  }
+  .tbquote .h .src{ font-family:var(--mono); font-weight:600; text-transform:none; color:var(--ink-faint); letter-spacing:0; }
+  .tbquote p{ margin:0; font-size:14.5px; color:var(--ink); }
+  .tbquote p + p{ margin-top:6px; }
+
+  .aside{
+    background:var(--surface-2); border-left:3px solid var(--accent-warm);
+    border-radius:0 10px 10px 0; padding:16px 18px; margin-block:20px; font-size:14px; color:var(--ink-soft);
+  }
+  .aside strong{ color:var(--ink); }
+
+  details.card{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:4px 18px; margin-block:16px; box-shadow:var(--shadow);
+  }
+  details.card summary{
+    cursor:pointer; list-style:none; padding-block:14px; font-weight:600; font-size:15px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  details.card summary::-webkit-details-marker{ display:none; }
+  details.card summary::after{ content:'+'; font-family:var(--mono); font-size:20px; color:var(--accent); }
+  details.card[open] summary::after{ content:'–'; }
+  details.card .card-body{ padding-bottom:16px; color:var(--ink-soft); font-size:14.5px; }
+  details.card .card-body p{ margin:0 0 10px; }
+
+  .lab{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:22px; margin-block:22px;
+  }
+  .lab-grid{ display:grid; grid-template-columns: 1.3fr 1fr; gap:24px; align-items:start; }
+  @media (max-width:720px){ .lab-grid{ grid-template-columns:1fr; } }
+  .lab svg{ width:100%; height:auto; display:block; }
+  .lab-footnote{ margin-top:18px; padding-top:14px; border-top:1px solid var(--line-b); }
+  .lab-footnote p{ font-size:12.5px; color:var(--ink-faint); margin:0 0 6px; }
+  .lab-footnote p:last-child{ margin-bottom:0; }
+  .presets{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .btn{
+    font:inherit; font-family:var(--sans); font-size:13px; font-weight:600; cursor:pointer;
+    border:1px solid var(--line-b); background:var(--surface); color:var(--ink);
+    padding:8px 13px; border-radius:999px; transition:background .15s, border-color .15s;
+  }
+  .btn:hover{ border-color:var(--accent); }
+  .btn.active{ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .btn.warm.active{ background:var(--accent-warm); color:var(--accent-warm-ink); }
+  .btn.ghost{ background:transparent; }
+
+  .slider-row{ margin-block:14px; }
+  .slider-row .row-top{ display:flex; justify-content:space-between; align-items:baseline; font-size:13.5px; margin-bottom:6px; }
+  .slider-row .row-top b{ font-weight:600; }
+  .slider-row .row-top .val{ font-family:var(--mono); color:var(--accent-warm); font-weight:600; }
+  input[type="range"]{
+    -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:999px;
+    background:var(--surface-2); outline:none;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+    background:var(--accent); border:3px solid var(--surface); box-shadow:0 0 0 1px var(--line-b); cursor:pointer;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:18px; height:18px; border-radius:50%; background:var(--accent); border:3px solid var(--surface);
+    box-shadow:0 0 0 1px var(--line-b); cursor:pointer;
+  }
+
+  .readout{
+    font-family:var(--mono); font-size:14.5px; text-align:center; margin-block:14px;
+    background:var(--surface-2); border-radius:10px; padding:10px;
+  }
+  .readout .eq{ color:var(--ink-soft); }
+  .readout .a-val{ color:var(--accent-warm); font-weight:600; }
+  .readout .b-val{ color:var(--accent); font-weight:600; }
+
+  .mse-panel{ display:flex; gap:10px; }
+  .mse-tile{ flex:1; background:var(--surface-2); border-radius:10px; padding:12px; text-align:center; }
+  .mse-tile .l{ font-size:11.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; }
+  .mse-tile .v{ font-family:var(--mono); font-size:19px; font-weight:600; margin-top:2px; }
+
+  .model-cols{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-block:22px; }
+  @media (max-width:680px){ .model-cols{ grid-template-columns:1fr; } }
+  .model-card{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px;
+  }
+  .model-card .tag{
+    align-self:flex-start; font-family:var(--mono); font-size:11px; letter-spacing:.05em;
+    padding:3px 9px; border-radius:999px; text-transform:uppercase;
+  }
+  .model-card.stat .tag{ background:var(--accent-ink); color:var(--accent); }
+  .model-card.ml .tag{ background:var(--accent-warm-ink); color:var(--accent-warm); }
+  .model-card h3{ font-size:16px; margin-top:0; }
+  .model-card p{ font-size:13.5px; color:var(--ink-soft); margin:0; }
+
+  .table-wrap{ overflow-x:auto; margin-block:20px; border-radius:var(--radius); border:1px solid var(--line-b); }
+  table.compare{ width:100%; border-collapse:collapse; min-width:420px; background:var(--surface); }
+  table.compare th, table.compare td{ padding:12px 16px; font-size:13.5px; text-align:left; border-bottom:1px solid var(--line-b); vertical-align:top; }
+  table.compare thead th{ background:var(--surface-2); font-weight:700; }
+  table.compare tbody th{ color:var(--ink-soft); font-weight:600; white-space:nowrap; }
+  table.compare tr:last-child td, table.compare tr:last-child th{ border-bottom:none; }
+  table.compare td.win{ color:var(--accent); font-weight:700; }
+
+  .code-block{
+    background:#0E1712; color:#DDEEE4; border-radius:12px; overflow:hidden; margin-block:16px;
+    border:1px solid color-mix(in srgb, var(--line-b) 60%, transparent);
+  }
+  .code-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:9px 14px; font-family:var(--mono); font-size:11.5px; color:#9FC2B2;
+    background:#0A1310; letter-spacing:.03em;
+  }
+  .code-block pre{ margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.65; white-space:pre-wrap; }
+  .tok-kw{ color:#77CDBB; } .tok-fn{ color:#E9C46A; } .tok-str{ color:#F0956A; } .tok-cls{ color:#8FC7F2; } .tok-com{ color:#6E8478; font-style:italic; }
+
+  .steps{ display:grid; gap:18px; margin-block:20px; padding:0; list-style:none; counter-reset:st; }
+  .steps > li{ position:relative; padding-left:38px; }
+  .steps > li::before{
+    counter-increment:st; content: counter(st);
+    position:absolute; left:0; top:1px; width:26px; height:26px; border-radius:50%;
+    background:var(--accent); color:var(--accent-ink); font-family:var(--mono); font-weight:700; font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .steps .st{ font-weight:700; display:block; margin-bottom:8px; }
+
+  .summary-list{ display:grid; gap:10px; margin-block:20px; }
+  .summary-item{ display:flex; gap:12px; align-items:flex-start; background:var(--surface); border:1px solid var(--line-b); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow); }
+  .summary-item .n{ font-family:var(--mono); color:var(--accent); font-weight:700; flex:none; }
+  .summary-item p{ margin:0; font-size:14.5px; color:var(--ink-soft); }
+
+  .quiz{ display:grid; gap:16px; margin-block:20px; }
+  .qcard{ background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow); }
+  .qcard .qtext{ font-weight:600; margin-bottom:12px; font-size:15px; }
+  .qopts{ display:grid; gap:8px; }
+  .qopt{
+    text-align:left; font:inherit; font-family:var(--sans); font-size:14px; cursor:pointer;
+    border:1px solid var(--line-b); background:var(--bg); color:var(--ink); border-radius:10px; padding:10px 13px;
+  }
+  .qopt:hover{ border-color:var(--accent); }
+  .qopt.correct{ border-color:var(--accent); background:var(--accent-ink); color:var(--ink); }
+  .qopt.wrong{ border-color:var(--accent-warm); background:var(--accent-warm-ink); color:var(--ink); }
+  .qfeedback{ margin-top:10px; font-size:13.5px; color:var(--ink-soft); min-height:1.4em; }
+
+  .reflect{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:20px; box-shadow:var(--shadow); margin-block:22px;
+  }
+  .reflect textarea{
+    width:100%; min-height:84px; resize:vertical; border-radius:10px; border:1px solid var(--line-b);
+    background:var(--bg); color:var(--ink); font:inherit; font-size:14px; padding:10px 12px; margin-top:10px;
+  }
+  .reflect .savehint{ font-size:12px; color:var(--ink-faint); margin-top:6px; }
+
+  footer{ padding-block:36px 60px; color:var(--ink-faint); font-size:12.5px; text-align:center; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="topnav-in">
+    <a class="brand" href="index.html">← <span class="dot">데이터 모델링과 평가</span></a>
+    <div class="navlinks">
+      <a href="#concept">개념</a>
+      <a href="#split">훈련·평가</a>
+      <a href="#overfit">과대적합</a>
+      <a href="#compare">모델 비교</a>
+      <a href="#vibe">바이브 코딩</a>
+      <a href="#summary">정리·퀴즈</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="hero">
+    <span class="eyebrow">Ⅲ. 데이터 모델링과 평가 · 회귀 모델 평가 · 교과서 131~134쪽</span>
+    <h1>이 모델,<br>믿고 써도 될까?</h1>
+    <p class="lede">지금까지는 오차를 최소로 만드는 계수를 구하는 데 집중했습니다. 그런데 계수를 구했다고 끝일까요? 이번에는 모델이 정말 쓸 만한지 판단하는 방법을 배웁니다.</p>
+
+    <div class="textbook-banner">
+      <span class="ic">📖</span>
+      <div><b>교과서를 옆에 펴 두고 함께 보세요.</b> 이 페이지의 점선 상자는 교과서 원문을 그대로 인용한 부분입니다. 쪽수가 함께 적혀 있으니, 더 자세히 읽고 싶을 때 교과서에서 그 쪽을 바로 찾아볼 수 있습니다.</div>
+    </div>
+
+    <div class="goalbox">
+      <span class="lbl">학습 목표</span>
+      <ul>
+        <li>결정계수를 이용해 회귀 모델의 설명력을 평가할 수 있다.</li>
+        <li>훈련 데이터와 평가 데이터를 나누어 모델의 실제 성능과 과대적합 여부를 판단할 수 있다.</li>
+      </ul>
+      <div class="kw-row">
+        <span class="kw">결정계수</span><span class="kw">훈련·평가 데이터</span>
+        <span class="kw">과대적합</span><span class="kw">모델 비교</span>
+      </div>
+    </div>
+  </div>
+
+  <section id="concept">
+    <div class="kicker">01 · 개념 · 교과서 131~132쪽</div>
+    <h2>오차만으로는 부족하다</h2>
+    <div class="chat">
+      <div class="bubble you">지난번에 기온이랑 풍속으로 미세먼지 예측하는 모델, 계수까지 다 구했잖아.</div>
+      <div class="bubble me">어, 오차 제곱합이 최소가 되는 값으로 구했지.</div>
+      <div class="bubble you">근데 그 오차가 작은 건지 큰 건지, 기준이 없으면 알 수가 없지 않아?</div>
+      <div class="bubble me">듣고 보니 그러네. "얼마나 작아야 좋은 거야?"라는 질문엔 아직 답을 못 하겠어.</div>
+    </div>
+    <p>평균제곱오차(MSE)는 원래 데이터와 같은 단위로 움직이기 때문에, 서로 다른 데이터에 대해 구한 값을 곧바로 비교하기 어렵습니다. 그래서 회귀 모델이 데이터를 얼마나 잘 설명하는지를 나타내는 또 다른 지표가 필요합니다.</p>
+
+    <div class="tbquote">
+      <div class="h"><span>📖 교과서 원문</span><span class="src">『데이터 과학』 132쪽</span></div>
+      <p>"결정 계수(R² score: R-squared score)는 회귀 모델이 실제 데이터와 얼마나 유사하게 예측하고 구체적으로 설명하는지를 나타낸다."</p>
+    </div>
+
+    <p>결정계수는 다음과 같이 구합니다. 분자는 내가 만든 모델의 오차제곱합(SSE)이고, 분모는 "평균으로만 예측했다면 생겼을" 오차제곱합(SST)입니다.</p>
+
+    <div class="formula-card">
+      <div class="formula-big">
+        <span>R²</span><span>=</span><span>1</span><span>−</span>
+        <span class="frac"><span class="fline a">SSE</span><span>SST</span></span>
+      </div>
+      <div class="formula-legend">
+        <div class="flegend-item">
+          <span class="flegend-swatch" style="background:var(--accent-warm)"></span>
+          <div><strong>SSE</strong><span>실젯값과 <b>내 모델</b>의 예측값 차이를 제곱해 더한 값. 이미 배운 오차제곱합입니다.</span></div>
+        </div>
+        <div class="flegend-item">
+          <span class="flegend-swatch" style="background:var(--ink-faint)"></span>
+          <div><strong>SST</strong><span>실젯값과 <b>평균값</b>의 차이를 제곱해 더한 값. "모델 없이 평균만 찍었을 때"의 기준점입니다.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <p>SST는 데이터 자체가 가진 값이라 <b>내 모델과 상관없이 항상 고정</b>되어 있습니다. 반면 SSE는 내가 만든 모델(계수)에 따라 달라집니다. 그래서 결정계수는 이렇게 해석합니다.</p>
+    <ul style="color:var(--ink-soft); font-size:14.5px;">
+      <li><b>1에 가까울수록</b> — 모델이 데이터를 잘 설명한다.</li>
+      <li><b>0에 가까울수록</b> — 평균으로 찍은 것과 큰 차이가 없다.</li>
+      <li><b>0보다 작을 수도 있다</b> — 모델이 평균보다도 못한, 오히려 나쁜 예측을 한다는 뜻이다.</li>
+    </ul>
+
+    <h3>직접 해 보기 — 회귀선을 옮기며 결정계수 관찰하기</h3>
+    <p class="lead">화수와 정주행 시간, 예전에 썼던 다섯 개의 점으로 다시 실험해 봅시다. 슬라이더로 회귀선을 이리저리 옮기면서 결정계수가 어떻게 달라지는지 관찰하세요.</p>
+
+    <div class="lab">
+      <div class="presets">
+        <button class="btn" id="r2BadBtn" onclick="setR2(1,150,'r2BadBtn')">엉성한 추측 (a=1, b=150)</button>
+        <button class="btn warm ghost" id="r2BestBtn" onclick="revealR2()">🏆 최적값 보기</button>
+      </div>
+      <div class="lab-grid">
+        <div>
+          <svg id="r2Plot" viewBox="0 0 460 320" role="img" aria-label="화수와 정주행 시간 산점도 위에 회귀선과 평균선을 함께 표시하는 그래프"></svg>
+        </div>
+        <div>
+          <div class="slider-row">
+            <div class="row-top"><b>가중치 a (기울기)</b><span class="val" id="r2AVal">1.50</span></div>
+            <input type="range" id="r2A" min="0" max="5" step="0.01" value="1.5">
+          </div>
+          <div class="slider-row">
+            <div class="row-top"><b>편향 b (절편)</b><span class="val" id="r2BVal">100.0</span></div>
+            <input type="range" id="r2B" min="0" max="150" step="0.1" value="100">
+          </div>
+          <div class="mse-panel">
+            <div class="mse-tile"><div class="l">SSE (내 모델)</div><div class="v num" id="r2Sse">–</div></div>
+            <div class="mse-tile"><div class="l">SST (고정값)</div><div class="v num" id="r2Sst">–</div></div>
+          </div>
+          <div class="mse-panel" style="margin-top:10px;">
+            <div class="mse-tile"><div class="l">결정계수 R²</div><div class="v num" id="r2Val" style="font-size:21px;">–</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="lab-footnote">
+        <p><span style="color:var(--accent-warm); font-weight:700;">주황 점선</span>은 내 모델과 실젯값의 차이(SSE), <span style="color:var(--ink-faint); font-weight:700;">회색 점선</span>은 평균과 실젯값의 차이(SST)입니다. 주황 점선을 다 합친 넓이가 회색 점선을 다 합친 넓이에 가까울수록 결정계수는 0에 가까워집니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="split">
+    <div class="kicker">02 · 실습 · 교과서 132~133쪽</div>
+    <h2>같은 데이터로 채점하면 벌어지는 일</h2>
+    <p class="lead">지금까지 실험에서는 계수를 구할 때 썼던 데이터로 오차와 결정계수를 다시 계산했습니다. 이미 풀어 본 문제로 시험을 보면 항상 점수가 잘 나오는 것처럼, 모델도 학습에 쓴 데이터에서는 실제보다 좋아 보일 수 있습니다.</p>
+    <p>그래서 데이터를 두 부분으로 나눕니다. 계수를 구하는 데 쓰는 <b>훈련 데이터</b>와, 그 계수가 처음 보는 데이터에도 통하는지 확인하는 <b>평가 데이터</b>입니다.</p>
+
+    <div class="tbquote">
+      <div class="h"><span>📖 교과서 원문</span><span class="src">『데이터 과학』 133쪽</span></div>
+      <p>"과대적합은 훈련 데이터에 지나치게 맞춰져 새로운 데이터에 대한 예측력이 떨어지는 것을 말한다."</p>
+    </div>
+
+    <div class="aside">
+      <strong>오늘 쓰는 데이터.</strong> 지난 시간과 같은 서울 2015~2024년 월별 평균기온·평균풍속·미세먼지(PM10) 120개월치 데이터를 씁니다(<code class="num">dataset/seoul_air_quality_2015_2024.csv</code>, <a href="https://github.com/keep-growing-park/ds-data-modeling/blob/main/dataset/seoul_air_quality_2015_2024.csv" target="_blank" rel="noopener">미리 보기 ↗</a>). 이번에는 <b>앞의 8년(2015~2022, 96개월)을 훈련 데이터로, 나머지 2년(2023~2024, 24개월)을 평가 데이터</b>로 나눕니다. 기온과 풍속을 함께 쓰는 다중 회귀 계수는 훈련 데이터만으로 구합니다.
+    </div>
+
+    <div class="lab">
+      <div class="readout" id="splitEq">PM10 = – · 기온 + – · 풍속 + –</div>
+      <div class="lab-grid" style="grid-template-columns: 1fr 1fr;">
+        <div>
+          <svg id="splitPlot" viewBox="0 0 400 320" role="img" aria-label="훈련 데이터와 평가 데이터를 색으로 구분해 예측값과 실젯값을 비교하는 산점도"></svg>
+        </div>
+        <div class="model-cols" style="margin-block:0;">
+          <div class="model-card stat">
+            <span class="tag">훈련 데이터 · 96개월</span>
+            <div class="mse-panel">
+              <div class="mse-tile"><div class="l">MSE</div><div class="v num" id="splitTrainMse">–</div></div>
+              <div class="mse-tile"><div class="l">R²</div><div class="v num" id="splitTrainR2">–</div></div>
+            </div>
+          </div>
+          <div class="model-card ml">
+            <span class="tag">평가 데이터 · 24개월</span>
+            <div class="mse-panel">
+              <div class="mse-tile"><div class="l">MSE</div><div class="v num" id="splitTestMse">–</div></div>
+              <div class="mse-tile"><div class="l">R²</div><div class="v num" id="splitTestR2">–</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="lab-footnote">
+        <p><span style="color:var(--accent); font-weight:700;">청록 점</span>은 훈련 데이터, <span style="color:var(--accent-warm); font-weight:700;">주황 점</span>은 평가 데이터입니다. 점선 대각선에 가까울수록 예측이 정확합니다.</p>
+        <p>두 결정계수를 비교해 보면 차이가 눈에 보이긴 하지만, "이 정도면 괜찮은 건지"는 숫자 하나만 보고는 판단하기 어렵습니다. 바로 다음 실험에서 이 차이를 일부러 극단적으로 크게 벌려 보면서, 비교 기준을 몸으로 익혀 보겠습니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="overfit">
+    <div class="kicker">03 · 실험 · 교과서 133쪽</div>
+    <h2>모델이 너무 열심히 외우면 생기는 일 — 과대적합</h2>
+    <p class="lead">훈련 성능과 평가 성능의 차이가 아주 크게 벌어지는 경우가 있습니다. 이를 <b>과대적합</b>이라고 하며, 특히 두 가지 상황에서 잘 나타납니다.</p>
+
+    <h3>① 모델이 너무 복잡할 때 — 다항 회귀의 차수</h3>
+    <p class="lead">지난 시간에 배운 다항 회귀에서, 고차항을 계속 늘리면 무슨 일이 벌어질까요? 이번에는 <b>기온 하나만으로</b> 미세먼지를 예측하는 다항 회귀를 만들고, 차수를 슬라이더로 직접 올려 봅시다. (훈련·평가 데이터는 위와 같은 96개월/24개월입니다.)</p>
+
+    <div class="lab">
+      <div class="slider-row" style="margin-bottom:20px;">
+        <div class="row-top"><b>다항식 차수</b><span class="val" id="polyDegVal">1</span></div>
+        <input type="range" id="polyDeg" min="1" max="8" step="1" value="1">
+      </div>
+      <div class="lab-grid" style="grid-template-columns: 1.3fr 1fr;">
+        <div>
+          <svg id="polyPlot" viewBox="0 0 460 320" role="img" aria-label="기온에 따른 미세먼지를 훈련·평가 데이터로 나누어 표시하고, 다항 회귀 곡선을 함께 그리는 그래프"></svg>
+        </div>
+        <div class="model-cols" style="grid-template-columns:1fr; margin-block:0;">
+          <div class="model-card stat">
+            <span class="tag">훈련 데이터</span>
+            <div class="mse-panel">
+              <div class="mse-tile"><div class="l">MSE</div><div class="v num" id="polyTrainMse">–</div></div>
+              <div class="mse-tile"><div class="l">R²</div><div class="v num" id="polyTrainR2">–</div></div>
+            </div>
+          </div>
+          <div class="model-card ml">
+            <span class="tag">평가 데이터</span>
+            <div class="mse-panel">
+              <div class="mse-tile"><div class="l">MSE</div><div class="v num" id="polyTestMse">–</div></div>
+              <div class="mse-tile"><div class="l">R²</div><div class="v num" id="polyTestR2">–</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="lab-footnote">
+        <p>차수를 높여 보면 훈련 성능(청록)은 계속 좋아지는 것처럼 보이지만, 평가 성능(주황)은 어느 지점을 지나면 오히려 나빠지기 시작합니다. 그 지점을 넘어서도 계속 차수를 올리는 것이 바로 과대적합입니다.</p>
+      </div>
+    </div>
+
+    <p style="font-size:13.5px; color:var(--ink-soft);">교과서는 이런 과대적합을 막는 방법으로 <b>규제(regularization)</b>를 짧게 언급합니다. 규제는 회귀 계수가 너무 커지지 않도록 억누르는 방법인데, 자세한 계산은 이 절의 범위를 벗어나므로 다루지 않습니다.</p>
+
+    <h3>② 데이터 개수가 너무 적을 때</h3>
+    <p class="lead">복잡한 모델이 아니어도, 데이터 개수 자체가 너무 적으면 과대적합이 일어날 수 있습니다. 훈련에 사용하는 개월 수를 슬라이더로 줄여 가며, 훈련 결정계수와 평가 결정계수의 차이가 어떻게 달라지는지 확인해 보세요. (기온·풍속을 함께 쓰는 모델이며, 평가 데이터는 항상 같은 24개월입니다.)</p>
+
+    <div class="lab">
+      <div class="slider-row" style="margin-bottom:6px;">
+        <div class="row-top"><b>훈련에 사용하는 개월 수 N</b><span class="val" id="nSampleVal">10개월</span></div>
+        <input type="range" id="nSample" min="3" max="96" step="1" value="10">
+      </div>
+      <svg id="nSampleBars" viewBox="0 0 460 160" role="img" aria-label="훈련에 사용한 개월 수에 따른 훈련 결정계수와 평가 결정계수를 막대로 비교하는 그래프" style="margin-top:10px;"></svg>
+      <div class="mse-panel" style="margin-top:14px;">
+        <div class="mse-tile"><div class="l">R² (훈련, N개월)</div><div class="v num" id="nSampleTrainR2" style="color:var(--accent);">–</div></div>
+        <div class="mse-tile"><div class="l">R² (평가, 24개월 고정)</div><div class="v num" id="nSampleTestR2" style="color:var(--accent-warm);">–</div></div>
+      </div>
+      <div class="lab-footnote">
+        <p id="nSampleNote">N을 3~10 정도로 줄여 보세요. 훈련 결정계수는 1에 가깝거나 심지어 정확히 1이 되기도 하지만, 평가 결정계수는 오히려 크게 떨어지거나 음수가 됩니다. 데이터가 아주 적으면 몇 개 안 되는 점에 모델이 우연히 딱 들어맞을 뿐, 새로운 데이터에는 전혀 맞지 않을 수 있습니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="compare">
+    <div class="kicker">04 · 실습 · 교과서 133~134쪽</div>
+    <h2>어떤 모델이 더 나을까 — 성능으로 비교하기</h2>
+    <p class="lead">모델이 여러 개라면, 어느 쪽이 더 나은지는 감이 아니라 숫자로 직접 확인해야 합니다. <b>기온만 사용한 모델</b>과 <b>기온+풍속을 사용한 모델</b> 중 평가 데이터에서 어느 쪽이 더 좋을지 먼저 예상해 보세요.</p>
+
+    <div class="lab">
+      <div class="presets">
+        <button class="btn" id="guessA" onclick="setGuess('A')">기온만 사용한 모델이 더 좋을 것 같다</button>
+        <button class="btn" id="guessB" onclick="setGuess('B')">기온+풍속을 사용한 모델이 더 좋을 것 같다</button>
+      </div>
+      <button class="btn warm ghost" id="revealCompareBtn" onclick="revealCompare()" style="margin-bottom:16px;">🏆 정답 확인하기</button>
+      <div class="table-wrap">
+        <table class="compare">
+          <thead>
+            <tr><th>모델</th><th>MSE (평가 데이터)</th><th>결정계수 R² (평가 데이터)</th></tr>
+          </thead>
+          <tbody>
+            <tr><th>기온만 (모델 A)</th><td id="cmpAMse">–</td><td id="cmpAR2">–</td></tr>
+            <tr><th>기온 + 풍속 (모델 B)</th><td id="cmpBMse">–</td><td id="cmpBR2">–</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="lab-footnote">
+        <p id="cmpNote">두 모델 모두 훈련 데이터(96개월)로 계수를 구하고, 같은 평가 데이터(24개월)로 성능을 비교했습니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="vibe">
+    <div class="kicker">05 · 바이브 코딩 실습</div>
+    <h2>훈련·평가로 나눠 내 모델 점검하기</h2>
+    <p class="lead">이번에도 AI에게 프롬프트로 부탁해 <b>스트림릿(Streamlit) 앱</b>을 만들어 봅니다. 같은 서울 기온·풍속·미세먼지 데이터를 훈련/평가로 나누어 성능을 비교합니다.</p>
+
+    <ol class="steps">
+      <li><span class="st">① 샘플 프롬프트 — 그대로 붙여 넣기</span>
+        <div class="code-block">
+          <div class="code-head">① AI에게 보낼 프롬프트</div>
+          <pre>"서울 미세먼지 모델 평가"라는 스트림릿 앱을 파일 하나로 만들어 줘.
+아래 주소의 CSV 파일을 읽어서 사용해:
+https://raw.githubusercontent.com/keep-growing-park/ds-data-modeling/main/dataset/seoul_air_quality_2015_2024.csv
+이 파일의 열 이름은 year_month, avg_temp_c, avg_wind_speed_ms, pm10_ug_m3이고
+year_month 순서대로 이미 시간순 정렬되어 있어.
+
+avg_temp_c와 avg_wind_speed_ms를 독립 변수로, pm10_ug_m3을 종속 변수로 해서
+train_test_split을 shuffle=False로, test_size=0.2로 써서
+앞부분을 훈련 데이터, 뒷부분을 평가 데이터로 나눠 줘.
+
+LinearRegression으로 훈련 데이터만 학습시키고,
+훈련 데이터와 평가 데이터 각각에 대해
+mean_squared_error와 r2_score를 계산해서
+두 결과를 나란히 비교하는 표로 보여 줘.
+
+plotly로 예측값과 실젯값을 비교하는 산점도도 그려 줘.
+훈련 데이터와 평가 데이터를 서로 다른 색으로 구분해서.
+
+필요한 라이브러리 목록도 파일로 따로 줘. 버전 숫자는 빼고 이름만.</pre>
+        </div>
+        <details class="card">
+          <summary>선생님 확인용 예시 코드</summary>
+          <div class="card-body">
+            <p><span class="num">main.py</span>와 <span class="num">requirements.txt</span>, 두 파일로 저장합니다.</p>
+            <div class="code-block">
+              <div class="code-head">main.py</div>
+              <pre><span class="tok-kw">import</span> streamlit <span class="tok-kw">as</span> st
+<span class="tok-kw">import</span> pandas <span class="tok-kw">as</span> pd
+<span class="tok-kw">import</span> plotly.express <span class="tok-kw">as</span> px
+<span class="tok-kw">from</span> sklearn.model_selection <span class="tok-kw">import</span> train_test_split
+<span class="tok-kw">from</span> sklearn.linear_model <span class="tok-kw">import</span> <span class="tok-cls">LinearRegression</span>
+<span class="tok-kw">from</span> sklearn.metrics <span class="tok-kw">import</span> mean_squared_error, r2_score
+
+DATA_URL = <span class="tok-str">"https://raw.githubusercontent.com/keep-growing-park/ds-data-modeling/main/dataset/seoul_air_quality_2015_2024.csv"</span>
+
+st.title(<span class="tok-str">"서울 미세먼지 모델 평가"</span>)
+
+df = pd.read_csv(DATA_URL)
+X = df[[<span class="tok-str">"avg_temp_c"</span>, <span class="tok-str">"avg_wind_speed_ms"</span>]]
+y = df[<span class="tok-str">"pm10_ug_m3"</span>]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=<span class="tok-cls">0.2</span>, shuffle=<span class="tok-cls">False</span>
+)
+
+model = <span class="tok-cls">LinearRegression</span>()
+model.<span class="tok-fn">fit</span>(X_train, y_train)
+
+pred_train = model.<span class="tok-fn">predict</span>(X_train)
+pred_test = model.<span class="tok-fn">predict</span>(X_test)
+
+result = pd.DataFrame({
+    <span class="tok-str">"MSE"</span>: [mean_squared_error(y_train, pred_train), mean_squared_error(y_test, pred_test)],
+    <span class="tok-str">"R2"</span>: [r2_score(y_train, pred_train), r2_score(y_test, pred_test)],
+}, index=[<span class="tok-str">"훈련 데이터"</span>, <span class="tok-str">"평가 데이터"</span>])
+st.dataframe(result)
+
+df_plot = pd.concat([
+    pd.DataFrame({<span class="tok-str">"실젯값"</span>: y_train, <span class="tok-str">"예측값"</span>: pred_train, <span class="tok-str">"구분"</span>: <span class="tok-str">"훈련"</span>}),
+    pd.DataFrame({<span class="tok-str">"실젯값"</span>: y_test, <span class="tok-str">"예측값"</span>: pred_test, <span class="tok-str">"구분"</span>: <span class="tok-str">"평가"</span>}),
+])
+fig = px.scatter(df_plot, x=<span class="tok-str">"실젯값"</span>, y=<span class="tok-str">"예측값"</span>, color=<span class="tok-str">"구분"</span>)
+st.plotly_chart(fig, width=<span class="tok-str">"stretch"</span>)</pre>
+            </div>
+            <div class="code-block">
+              <div class="code-head">requirements.txt</div>
+              <pre>streamlit
+pandas
+plotly
+scikit-learn</pre>
+            </div>
+          </div>
+        </details>
+      </li>
+      <li><span class="st">② AI가 준 코드 — 실행하고 결과를 읽는다</span>
+        받은 코드를 <span class="num">main.py</span> 파일 하나로 저장해 실행합니다. 훈련 데이터와 평가 데이터의 결정계수가 위 실험에서 본 값과 비슷한지 비교해 봅니다.
+      </li>
+      <li><span class="st">③ 개선 프롬프트 — 데이터를 줄여서 과대적합 재현하기</span>
+        <div class="code-block">
+          <div class="code-head">③ 개선 프롬프트</div>
+          <pre>이번엔 훈련 데이터로 처음 10개 행만 사용해서
+같은 과정을 반복해 줘. (평가 데이터는 그대로 두고)
+훈련 성능과 평가 성능의 차이가 원래보다
+얼마나 더 벌어지는지 비교해서 보여 줘.</pre>
+        </div>
+        <p style="font-size:13.5px; color:var(--ink-soft); margin-top:8px;">위 03절 ②번 실험에서 본 것과 같은 현상이 코드로도 재현되는지 확인해 봅니다.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section id="summary">
+    <div class="kicker">06 · 정리</div>
+    <h2>핵심 정리</h2>
+    <div class="summary-list">
+      <div class="summary-item"><span class="n">01</span><p>결정계수(R²)는 모델이 데이터를 얼마나 잘 설명하는지를 나타내며, <b>1에 가까울수록 좋고 0보다 작을 수도 있다.</b></p></div>
+      <div class="summary-item"><span class="n">02</span><p>학습에 사용한 데이터로 모델을 다시 평가하면 성능이 부풀려질 수 있어, <b>훈련 데이터와 평가 데이터를 나누어야</b> 한다.</p></div>
+      <div class="summary-item"><span class="n">03</span><p>모델이 너무 복잡하거나 데이터가 너무 적으면, 훈련 성능은 좋은데 평가 성능이 나빠지는 <b>과대적합</b>이 발생할 수 있다.</p></div>
+      <div class="summary-item"><span class="n">04</span><p>여러 모델의 평가 지표를 비교해 더 나은 모델을 선택할 수 있다.</p></div>
+    </div>
+
+    <h2 style="margin-top:36px;">개념 체크</h2>
+    <div class="quiz">
+      <div class="qcard">
+        <div class="qtext">Q1. 결정계수가 0에 가깝다는 것은 무슨 뜻일까요?</div>
+        <div class="qopts">
+          <button class="qopt" data-correct="true">모델의 예측이 평균으로 찍은 것과 큰 차이가 없다</button>
+          <button class="qopt" data-correct="false">모델이 데이터를 완벽하게 설명한다</button>
+          <button class="qopt" data-correct="false">데이터 개수가 부족하다는 뜻이다</button>
+        </div>
+        <div class="qfeedback"></div>
+      </div>
+      <div class="qcard">
+        <div class="qtext">Q2. 훈련 데이터에서는 성능이 아주 좋은데 평가 데이터에서는 성능이 뚝 떨어진다면, 무엇이 발생했을 가능성이 클까요?</div>
+        <div class="qopts">
+          <button class="qopt" data-correct="false">데이터가 너무 많아서 생긴 정상적인 현상이다</button>
+          <button class="qopt" data-correct="true">과대적합이 발생했을 가능성이 크다</button>
+          <button class="qopt" data-correct="false">평가 데이터가 잘못 측정된 것이다</button>
+        </div>
+        <div class="qfeedback"></div>
+      </div>
+      <div class="qcard">
+        <div class="qtext">Q3. 데이터 개수가 아주 적을 때 자주 나타나는 현상은 무엇일까요?</div>
+        <div class="qopts">
+          <button class="qopt" data-correct="true">훈련 성능은 좋아 보여도 평가 성능은 불안정하고 나쁠 위험이 크다</button>
+          <button class="qopt" data-correct="false">항상 결정계수가 1에 가까운, 믿을 수 있는 모델이 된다</button>
+          <button class="qopt" data-correct="false">계산 속도만 빨라질 뿐 성능에는 영향이 없다</button>
+        </div>
+        <div class="qfeedback"></div>
+      </div>
+    </div>
+
+    <div class="reflect">
+      <div style="font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--accent); text-transform:uppercase;">생각 나누기</div>
+      <p style="margin:10px 0 0; font-size:14.5px;">내가 겪었던 일 중에서, "이미 아는 문제로 연습해서 자신 있었는데 막상 새로운 문제(시험, 상황)에서는 잘 안 됐던" 경험을 떠올려 적어 봅시다. 과대적합과 비슷한 점이 무엇인지도 함께 생각해 보세요.</p>
+      <textarea id="reflectNote" placeholder="예: 학원에서 풀었던 문제 유형으로만 연습했는데, 실제 시험에는 낯선 유형이 나와서 당황했다..."></textarea>
+      <div class="savehint" id="saveHint">이 브라우저에만 저장되는 나만의 메모입니다.</div>
+    </div>
+  </section>
+
+  <footer>회귀 모델 평가 실험실 · 고등학교 2학년 데이터 과학 「Ⅲ. 데이터 모델링과 평가 — 02. 회귀 분석」 131~134쪽을 바탕으로 제작 · 데이터 출처: 국가통계포털(KOSIS)</footer>
+</div>
+
+<script>
+(function(){
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs){
+    var e = document.createElementNS(NS, tag);
+    for(var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function liangBarsky(x0,y0,x1,y1,xmin,ymin,xmax,ymax){
+    var t0=0,t1=1, dx=x1-x0, dy=y1-y0;
+    var checks=[[-dx,x0-xmin],[dx,xmax-x0],[-dy,y0-ymin],[dy,ymax-y0]];
+    for(var i=0;i<4;i++){
+      var p=checks[i][0], q=checks[i][1];
+      if(p===0){ if(q<0) return null; }
+      else{
+        var r=q/p;
+        if(p<0){ if(r>t1) return null; if(r>t0) t0=r; }
+        else{ if(r<t0) return null; if(r<t1) t1=r; }
+      }
+    }
+    return [x0+t0*dx, y0+t0*dy, x0+t1*dx, y0+t1*dy];
+  }
+  function mean(a){ return a.reduce(function(x,y){return x+y;},0)/a.length; }
+
+  // 일반 선형 최소제곱: 정규방정식을 가우스 소거법으로 풀이 (다항 회귀·다중 회귀 공용)
+  function solveLinear(A, bvec){
+    var N = A.length;
+    var M = A.map(function(row,i){ return row.concat([bvec[i]]); });
+    for(var col=0; col<N; col++){
+      var piv = col;
+      for(var r=col+1; r<N; r++) if(Math.abs(M[r][col])>Math.abs(M[piv][col])) piv=r;
+      var tmp=M[col]; M[col]=M[piv]; M[piv]=tmp;
+      var pivVal = M[col][col];
+      for(var c=col;c<=N;c++) M[col][c]/=pivVal;
+      for(var r=0;r<N;r++){
+        if(r===col) continue;
+        var factor = M[r][col];
+        for(var c=col;c<=N;c++) M[r][c]-=factor*M[col][c];
+      }
+    }
+    return M.map(function(row){ return row[N]; });
+  }
+  function fitMulti(X, y){
+    var p = X[0].length;
+    var XtX = []; for(var a=0;a<p;a++){ XtX.push(new Array(p).fill(0)); }
+    var Xty = new Array(p).fill(0);
+    for(var i=0;i<X.length;i++){
+      for(var aa=0; aa<p; aa++){
+        Xty[aa] += X[i][aa]*y[i];
+        for(var bb=0; bb<p; bb++) XtX[aa][bb] += X[i][aa]*X[i][bb];
+      }
+    }
+    return solveLinear(XtX, Xty);
+  }
+  function predictRow(beta, row){
+    var s=0; for(var i=0;i<beta.length;i++) s+=beta[i]*row[i];
+    return s;
+  }
+  function evalMetrics(beta, X, y){
+    var n=y.length, my=mean(y), sse=0, sst=0;
+    for(var i=0;i<n;i++){
+      var pred = predictRow(beta, X[i]);
+      sse += (y[i]-pred)*(y[i]-pred);
+      sst += (y[i]-my)*(y[i]-my);
+    }
+    return { mse: sse/n, r2: 1-sse/sst, sse:sse, sst:sst };
+  }
+  function fmtR2(v){
+    if(!isFinite(v)) return '–';
+    if(Math.abs(v) >= 10) return v.toFixed(1);
+    return v.toFixed(3);
+  }
+
+  /* ---------- 위젯 1: 결정계수 개념 (화수/정주행 시간, 다섯 개 점) ---------- */
+  (function(){
+    var data = [ {x:20,y:70},{x:35,y:120},{x:50,y:165},{x:65,y:210},{x:80,y:255} ];
+    var xDomain=[0,100], yDomain=[0,300];
+    var pad={left:46,right:14,top:14,bottom:34};
+    var vbW=460, vbH=320;
+    var plotW=vbW-pad.left-pad.right, plotH=vbH-pad.top-pad.bottom;
+    function sx(x){ return pad.left + (x-xDomain[0])/(xDomain[1]-xDomain[0])*plotW; }
+    function sy(y){ return pad.top + plotH - (y-yDomain[0])/(yDomain[1]-yDomain[0])*plotH; }
+
+    var meanY = mean(data.map(function(p){return p.y;}));
+    var sst = data.reduce(function(s,p){ return s+(p.y-meanY)*(p.y-meanY); }, 0);
+
+    var svg = document.getElementById('r2Plot');
+    var axes = el('g',{});
+    [0,50,100,150,200,250,300].forEach(function(t){
+      axes.appendChild(el('line',{x1:pad.left,x2:vbW-pad.right,y1:sy(t),y2:sy(t),stroke:'var(--grid-line)','stroke-width':1}));
+      var lbl = el('text',{x:pad.left-8,y:sy(t)+4,'text-anchor':'end','font-size':9,'font-family':'IBM Plex Mono, monospace',fill:'var(--ink-faint)'});
+      lbl.textContent = t; axes.appendChild(lbl);
+    });
+    [0,20,40,60,80,100].forEach(function(t){
+      var lbl = el('text',{x:sx(t),y:vbH-pad.bottom+16,'text-anchor':'middle','font-size':9,'font-family':'IBM Plex Mono, monospace',fill:'var(--ink-faint)'});
+      lbl.textContent = t; axes.appendChild(lbl);
+    });
+    var xl = el('text',{x:vbW/2,y:vbH-4,'text-anchor':'middle','font-size':10,'font-family':'IBM Plex Sans KR, sans-serif',fill:'var(--ink-soft)'});
+    xl.textContent='화수 (x)'; axes.appendChild(xl);
+    var yl = el('text',{x:12,y:pad.top+6,'font-size':10,'font-family':'IBM Plex Sans KR, sans-serif',fill:'var(--ink-soft)'});
+    yl.textContent='분'; axes.appendChild(yl);
+    svg.appendChild(axes);
+
+    // 평균선 + SST 잔차(고정, 슬라이더와 무관)
+    var meanLine = el('g',{});
+    meanLine.appendChild(el('line',{x1:pad.left,x2:vbW-pad.right,y1:sy(meanY),y2:sy(meanY),stroke:'var(--ink-faint)','stroke-width':1.5,'stroke-dasharray':'5 4'}));
+    data.forEach(function(p){
+      meanLine.appendChild(el('line',{x1:sx(p.x),y1:sy(p.y),x2:sx(p.x),y2:sy(meanY),stroke:'var(--ink-faint)','stroke-width':1,'stroke-dasharray':'2 3',opacity:0.7}));
+    });
+    svg.appendChild(meanLine);
+
+    var sseLayer = el('g',{});
+    svg.appendChild(sseLayer);
+    var sseSegs = data.map(function(){ var l=el('line',{stroke:'var(--accent-warm)','stroke-width':1.3,'stroke-dasharray':'3 3',opacity:0.85}); sseLayer.appendChild(l); return l; });
+
+    var lineLayer = el('g',{});
+    svg.appendChild(lineLayer);
+
+    var dataLayer = el('g',{});
+    data.forEach(function(p){ dataLayer.appendChild(el('circle',{cx:sx(p.x),cy:sy(p.y),r:5,fill:'var(--ink)','fill-opacity':0.78})); });
+    svg.appendChild(dataLayer);
+
+    var aIn = document.getElementById('r2A'), bIn = document.getElementById('r2B');
+    document.getElementById('r2Sst').textContent = sst.toFixed(1);
+
+    function render(){
+      var a = parseFloat(aIn.value), b = parseFloat(bIn.value);
+      document.getElementById('r2AVal').textContent = a.toFixed(2);
+      document.getElementById('r2BVal').textContent = b.toFixed(1);
+
+      while(lineLayer.firstChild) lineLayer.removeChild(lineLayer.firstChild);
+      var y0=a*xDomain[0]+b, y1=a*xDomain[1]+b;
+      var clip = liangBarsky(xDomain[0],y0,xDomain[1],y1,xDomain[0],yDomain[0],xDomain[1],yDomain[1]);
+      if(clip){
+        lineLayer.appendChild(el('line',{x1:sx(clip[0]),y1:sy(clip[1]),x2:sx(clip[2]),y2:sy(clip[3]),stroke:'var(--accent-warm)','stroke-width':2.5,'stroke-linecap':'round'}));
+      }
+
+      var sse=0;
+      data.forEach(function(p,i){
+        var pred=a*p.x+b;
+        sse += (p.y-pred)*(p.y-pred);
+        sseSegs[i].setAttribute('x1',sx(p.x)); sseSegs[i].setAttribute('y1',sy(p.y));
+        sseSegs[i].setAttribute('x2',sx(p.x)); sseSegs[i].setAttribute('y2',sy(pred));
+      });
+      document.getElementById('r2Sse').textContent = sse.toFixed(1);
+      document.getElementById('r2Val').textContent = fmtR2(1-sse/sst);
+    }
+    aIn.addEventListener('input', function(){ clearActive(); render(); });
+    bIn.addEventListener('input', function(){ clearActive(); render(); });
+    function clearActive(){
+      document.getElementById('r2BadBtn').classList.remove('active');
+      document.getElementById('r2BestBtn').classList.remove('active');
+    }
+    window.setR2 = function(a,b,btnId){
+      aIn.value=a; bIn.value=b;
+      clearActive();
+      document.getElementById(btnId).classList.add('active');
+      render();
+    };
+    window.revealR2 = function(){
+      var mx = mean(data.map(function(p){return p.x;}));
+      var num=0, den=0;
+      data.forEach(function(p){ num += (p.x-mx)*(p.y-meanY); den += (p.x-mx)*(p.x-mx); });
+      var a = num/den, b = meanY - a*mx;
+      aIn.value=a; bIn.value=b;
+      clearActive();
+      document.getElementById('r2BestBtn').classList.add('active');
+      render();
+    };
+    render();
+  })();
+
+  /* ---------- 공용: 서울 대기질 120개월 데이터 ---------- */
+  var temps=[-0.9,1,6.3,13.3,18.9,23.6,25.8,26.3,22.4,15.5,8.9,1.6,-3.2,0.2,7,14.1,19.6,23.6,26.2,28,23.1,16.1,6.8,1.2,-1.8,-0.2,6.3,13.9,19.5,23.3,26.9,25.9,22.1,16.4,5.6,-1.9,-4,-1.6,8.1,13,18.2,23.1,27.8,28.8,21.5,13.1,7.8,-0.6,-0.9,1,7.1,12.1,19.4,22.5,25.9,27.2,22.6,16.4,7.6,1.4,1.6,2.5,7.7,11.1,18,23.9,24.1,26.5,21.4,14.3,8,-0.3,-2.4,2.7,9,14.2,17.1,22.8,28.1,25.9,22.6,15.6,8.2,0.6,-2.2,-1.1,7.7,14.8,19.1,23.3,27.3,25.7,22.4,14.6,10,-2.8,-1.5,2.3,9.8,13.8,19.5,23.4,26.7,27.2,23.7,15.8,6.8,1.1,-0.5,3.8,7,16.3,18.5,24.6,26.6,29.3,25.5,16.7,9.7,0.8];
+  var winds=[2.6,2.9,3.1,3.1,3,2.5,2.8,2.4,2.3,2.3,2.7,2.3,2.5,2.8,2.4,2.4,2.4,2.1,2.1,2.1,2,2.1,2.2,2.2,2.3,2.4,2.4,2.6,2.4,2.4,2,2.3,2,1.9,2.1,1.8,1.9,2.2,1.9,2,1.7,1.7,1.5,1.7,1.6,1.5,1.4,1.8,1.8,1.8,2.1,1.9,2.1,1.7,1.8,1.6,2.2,2.1,2.2,2.1,2.1,2.3,2.5,3,2.4,2.3,2.4,2.3,2.5,2.1,2.2,2.2,2.5,2.6,2.4,2.6,2.4,2.2,2,2.1,2.3,2.1,2.1,2.3,2.2,2.6,2.5,2.7,2.6,2.5,2.1,2.3,2.4,2.2,2.1,2.3,2.4,2.3,2.3,2.5,2.3,2.2,2.1,2.2,2,1.9,2.6,2.4,2.3,2.5,2.7,2.4,2.4,2.2,2.5,2.1,2.3,2,2,2.2];
+  var pm10s=[49,84,71,45,45,35,30,34,28,44,33,48,50,45,64,71,56,46,33,34,37,38,52,48,53,46,60,56,63,41,33,21,32,29,42,50,52,53,52,52,42,37,24,22,20,28,52,43,66,57,69,41,52,29,26,25,21,31,40,42,42,41,45,44,35,36,21,23,19,33,42,42,38,48,67,42,61,33,24,22,15,27,45,39,43,40,41,45,33,22,25,20,22,25,39,38,48,46,68,63,38,28,26,21,20,28,30,36,36,33,49,50,30,31,20,24,16,23,29,34];
+  var nAll = temps.length;
+  var trainIdx = []; for(var ti=0; ti<96; ti++) trainIdx.push(ti);
+  var testIdx = []; for(var vi=96; vi<nAll; vi++) testIdx.push(vi);
+
+  function buildXY(idxs, kind){
+    var X = idxs.map(function(i){
+      if(kind==='temp') return [1, temps[i]];
+      return [1, temps[i], winds[i]];
+    });
+    var y = idxs.map(function(i){ return pm10s[i]; });
+    return {X:X, y:y};
+  }
+
+  var trTW = buildXY(trainIdx,'tw'), teTW = buildXY(testIdx,'tw');
+  var betaTW = fitMulti(trTW.X, trTW.y);
+  var trT = buildXY(trainIdx,'temp'), teT = buildXY(testIdx,'temp');
+  var betaT = fitMulti(trT.X, trT.y);
+
+  /* ---------- 위젯 2: 훈련/평가 분할 (예측 vs 실제) ---------- */
+  (function(){
+    var svg = document.getElementById('splitPlot');
+    var domain=[0,100];
+    var pad={left:42,right:12,top:12,bottom:32};
+    var vbW=400, vbH=320;
+    var plotW=vbW-pad.left-pad.right, plotH=vbH-pad.top-pad.bottom;
+    function sx(v){ return pad.left + (v-domain[0])/(domain[1]-domain[0])*plotW; }
+    function sy(v){ return pad.top + plotH - (v-domain[0])/(domain[1]-domain[0])*plotH; }
+
+    var axes = el('g',{});
+    [0,20,40,60,80,100].forEach(function(t){
+      axes.appendChild(el('line',{x1:sx(t),x2:sx(t),y1:pad.top,y2:vbH-pad.bottom,stroke:'var(--grid-line)','stroke-width':1}));
+      axes.appendChild(el('line',{x1:pad.left,x2:vbW-pad.right,y1:sy(t),y2:sy(t),stroke:'var(--grid-line)','stroke-width':1}));
+      var lblx = el('text',{x:sx(t),y:vbH-pad.bottom+16,'text-anchor':'middle','font-size':9,'font-family':'IBM Plex Mono, monospace',fill:'var(--ink-faint)'});
+      lblx.textContent=t; axes.appendChild(lblx);
+      var lbly = el('text',{x:pad.left-8,y:sy(t)+4,'text-anchor':'end','font-size':9,'font-family':'IBM Plex Mono, monospace',fill:'var(--ink-faint)'});
+      lbly.textContent=t; axes.appendChild(lbly);
+    });
+    var xl=el('text',{x:vbW/2,y:vbH-4,'text-anchor':'middle','font-size':10,'font-family':'IBM Plex Sans KR, sans-serif',fill:'var(--ink-soft)'});
+    xl.textContent='실제 PM10'; axes.appendChild(xl);
+    var yl=el('text',{x:10,y:pad.top+6,'font-size':10,'font-family':'IBM Plex Sans KR, sans-serif',fill:'var(--ink-soft)'});
+    yl.textContent='예측'; axes.appendChild(yl);
+    axes.appendChild(el('line',{x1:sx(0),y1:sy(0),x2:sx(100),y2:sy(100),stroke:'var(--ink-faint)','stroke-width':1.5,'stroke-dasharray':'5 4'}));
+    svg.appendChild(axes);
+
+    var ptsLayer = el('g',{});
+    svg.appendChild(ptsLayer);
+    function clampDom(v){ return Math.max(0, Math.min(100, v)); }
+    trainIdx.forEach(function(i){
+      var pred = predictRow(betaTW, [1, temps[i], winds[i]]);
+      ptsLayer.appendChild(el('circle',{cx:sx(clampDom(pm10s[i])), cy:sy(clampDom(pred)), r:3.3, fill:'var(--accent)', 'fill-opacity':0.6}));
+    });
+    testIdx.forEach(function(i){
+      var pred = predictRow(betaTW, [1, temps[i], winds[i]]);
+      ptsLayer.appendChild(el('circle',{cx:sx(clampDom(pm10s[i])), cy:sy(clampDom(pred)), r:3.6, fill:'var(--accent-warm)', 'fill-opacity':0.85}));
+    });
+
+    var trm = evalMetrics(betaTW, trTW.X, trTW.y);
+    var tem = evalMetrics(betaTW, teTW.X, teTW.y);
+    document.getElementById('splitEq').innerHTML =
+      'PM10 = <span class="a-val">'+betaTW[1].toFixed(2)+'</span>·기온 + <span class="a-val">'+betaTW[2].toFixed(2)+'</span>·풍속 + <span class="b-val">'+betaTW[0].toFixed(1)+'</span>';
+    document.getElementById('splitTrainMse').textContent = trm.mse.toFixed(1);
+    document.getElementById('splitTrainR2').textContent = fmtR2(trm.r2);
+    document.getElementById('splitTestMse').textContent = tem.mse.toFixed(1);
+    document.getElementById('splitTestR2').textContent = fmtR2(tem.r2);
+  })();
+
+  /* ---------- 위젯 3a: 다항 회귀 차수 (기온 → PM10) ---------- */
+  (function(){
+    var trainTemps = trainIdx.map(function(i){ return temps[i]; });
+    var mT = mean(trainTemps);
+    var sdT = Math.sqrt(mean(trainTemps.map(function(t){ return (t-mT)*(t-mT); })));
+    function z(t){ return (t-mT)/sdT; }
+
+    var tMin=-5, tMax=30, yMin=0, yMax=100;
+    var pad={left:42,right:12,top:12,bottom:32};
+    var vbW=460, vbH=320;
+    var plotW=vbW-pad.left-pad.right, plotH=vbH-pad.top-pad.bottom;
+    function sx(t){ return pad.left + (t-tMin)/(tMax-tMin)*plotW; }
+    function sy(v){ return pad.top + plotH - (v-yMin)/(yMax-yMin)*plotH; }
+
+    var svg = document.getElementById('polyPlot');
+    var axes = el('g',{});
+    [-5,0,5,10,15,20,25,30].forEach(function(t){
+      var lbl=el('text',{x:sx(t),y:vbH-pad.bottom+16,'text-anchor':'middle','font-size':9,'font-family':'IBM Plex Mono, monospace',fill:'var(--ink-faint)'});
+      lbl.textContent=t; axes.appendChild(lbl);
+    });
+    [0,20,40,60,80,100].forEach(function(v){
+      axes.appendChild(el('line',{x1:pad.left,x2:vbW-pad.right,y1:sy(v),y2:sy(v),stroke:'var(--grid-line)','stroke-width':1}));
+      var lbl=el('text',{x:pad.left-8,y:sy(v)+4,'text-anchor':'end','font-size':9,'font-family':'IBM Plex Mono, monospace',fill:'var(--ink-faint)'});
+      lbl.textContent=v; axes.appendChild(lbl);
+    });
+    var xl=el('text',{x:vbW/2,y:vbH-4,'text-anchor':'middle','font-size':10,'font-family':'IBM Plex Sans KR, sans-serif',fill:'var(--ink-soft)'});
+    xl.textContent='기온(℃)'; axes.appendChild(xl);
+    var yl=el('text',{x:10,y:pad.top+6,'font-size':10,'font-family':'IBM Plex Sans KR, sans-serif',fill:'var(--ink-soft)'});
+    yl.textContent='PM10'; axes.appendChild(yl);
+    svg.appendChild(axes);
+
+    var curveLayer = el('g',{});
+    svg.appendChild(curveLayer);
+    var ptsLayer = el('g',{});
+    svg.appendChild(ptsLayer);
+    trainIdx.forEach(function(i){ ptsLayer.appendChild(el('circle',{cx:sx(temps[i]), cy:sy(Math.max(yMin,Math.min(yMax,pm10s[i]))), r:3, fill:'var(--accent)', 'fill-opacity':0.55})); });
+    testIdx.forEach(function(i){ ptsLayer.appendChild(el('circle',{cx:sx(temps[i]), cy:sy(Math.max(yMin,Math.min(yMax,pm10s[i]))), r:3.4, fill:'var(--accent-warm)', 'fill-opacity':0.85})); });
+
+    function buildPoly(idxs, degree){
+      var X = idxs.map(function(i){
+        var zz=z(temps[i]); var row=[1];
+        for(var d=1; d<=degree; d++) row.push(Math.pow(zz,d));
+        return row;
+      });
+      var y = idxs.map(function(i){ return pm10s[i]; });
+      return {X:X, y:y};
+    }
+
+    var degIn = document.getElementById('polyDeg');
+    function render(){
+      var deg = parseInt(degIn.value, 10);
+      document.getElementById('polyDegVal').textContent = deg;
+      var tr = buildPoly(trainIdx, deg), te = buildPoly(testIdx, deg);
+      var beta = fitMulti(tr.X, tr.y);
+      var trm = evalMetrics(beta, tr.X, tr.y), tem = evalMetrics(beta, te.X, te.y);
+      document.getElementById('polyTrainMse').textContent = trm.mse.toFixed(1);
+      document.getElementById('polyTrainR2').textContent = fmtR2(trm.r2);
+      document.getElementById('polyTestMse').textContent = tem.mse.toFixed(1);
+      document.getElementById('polyTestR2').textContent = fmtR2(tem.r2);
+
+      var pts=[];
+      var STEPS=120;
+      for(var s=0; s<=STEPS; s++){
+        var t = tMin + (s/STEPS)*(tMax-tMin);
+        var zz = z(t);
+        var pred = 0; for(var d=0; d<beta.length; d++) pred += beta[d]*Math.pow(zz,d);
+        pred = Math.max(yMin-10, Math.min(yMax+10, pred));
+        pts.push(sx(t)+','+sy(Math.max(yMin,Math.min(yMax,pred))));
+      }
+      while(curveLayer.firstChild) curveLayer.removeChild(curveLayer.firstChild);
+      curveLayer.appendChild(el('polyline',{points:pts.join(' '), fill:'none', stroke:'var(--accent-warm)','stroke-width':2.4,'stroke-linecap':'round','stroke-linejoin':'round'}));
+    }
+    degIn.addEventListener('input', render);
+    render();
+  })();
+
+  /* ---------- 위젯 3b: 데이터 개수(N)로 인한 과대적합 ---------- */
+  (function(){
+    var svg = document.getElementById('nSampleBars');
+    var vbW=460, vbH=160;
+    var r2Min=-3, r2Max=1;
+    var barW=110, gap=60;
+    var baseY = vbH-28, topY=14;
+    function yPos(v){
+      var c = Math.max(r2Min, Math.min(r2Max, v));
+      return baseY - (c - r2Min)/(r2Max-r2Min) * (baseY-topY);
+    }
+    var zeroY = yPos(0);
+
+    svg.appendChild(el('line',{x1:20,x2:vbW-20,y1:zeroY,y2:zeroY,stroke:'var(--grid-line)','stroke-width':1}));
+    var trainX = vbW/2 - gap/2 - barW, testX = vbW/2 + gap/2;
+    var trainRect = el('rect',{x:trainX, width:barW, fill:'var(--accent)', rx:6});
+    var testRect = el('rect',{x:testX, width:barW, fill:'var(--accent-warm)', rx:6});
+    svg.appendChild(trainRect); svg.appendChild(testRect);
+    var trainLbl = el('text',{x:trainX+barW/2, y:baseY+18, 'text-anchor':'middle', 'font-size':11, 'font-family':'IBM Plex Sans KR, sans-serif', fill:'var(--ink-soft)'});
+    trainLbl.textContent='훈련'; svg.appendChild(trainLbl);
+    var testLbl = el('text',{x:testX+barW/2, y:baseY+18, 'text-anchor':'middle', 'font-size':11, 'font-family':'IBM Plex Sans KR, sans-serif', fill:'var(--ink-soft)'});
+    testLbl.textContent='평가'; svg.appendChild(testLbl);
+    var trainValTxt = el('text',{x:trainX+barW/2, y:0, 'text-anchor':'middle', 'font-size':12, 'font-family':'IBM Plex Mono, monospace', fill:'var(--accent)', 'font-weight':700});
+    svg.appendChild(trainValTxt);
+    var testValTxt = el('text',{x:testX+barW/2, y:0, 'text-anchor':'middle', 'font-size':12, 'font-family':'IBM Plex Mono, monospace', fill:'var(--accent-warm)', 'font-weight':700});
+    svg.appendChild(testValTxt);
+
+    function setBar(rect, txt, v){
+      var y1 = yPos(v);
+      var top = Math.min(y1, zeroY), h = Math.max(Math.abs(y1-zeroY), 1);
+      rect.setAttribute('y', top);
+      rect.setAttribute('height', h);
+      txt.setAttribute('y', v>=0 ? y1-8 : y1+18);
+      txt.textContent = fmtR2(v);
+    }
+
+    var nIn = document.getElementById('nSample');
+    function render(){
+      var N = parseInt(nIn.value, 10);
+      document.getElementById('nSampleVal').textContent = N+'개월';
+      var idxs = trainIdx.slice(0, N);
+      var tr = buildXY(idxs, 'tw');
+      var beta;
+      try{ beta = fitMulti(tr.X, tr.y); } catch(e){ return; }
+      var trm = evalMetrics(beta, tr.X, tr.y);
+      var tem = evalMetrics(beta, teTW.X, teTW.y);
+      document.getElementById('nSampleTrainR2').textContent = fmtR2(trm.r2);
+      document.getElementById('nSampleTestR2').textContent = fmtR2(tem.r2);
+      setBar(trainRect, trainValTxt, trm.r2);
+      setBar(testRect, testValTxt, tem.r2);
+    }
+    nIn.addEventListener('input', render);
+    render();
+  })();
+
+  /* ---------- 위젯 4: 모델 비교 (기온만 vs 기온+풍속) ---------- */
+  (function(){
+    window.setGuess = function(which){
+      document.getElementById('guessA').classList.toggle('active', which==='A');
+      document.getElementById('guessB').classList.toggle('active', which==='B');
+    };
+    window.revealCompare = function(){
+      var mA = evalMetrics(betaT, teT.X, teT.y);
+      var mB = evalMetrics(betaTW, teTW.X, teTW.y);
+      document.getElementById('cmpAMse').textContent = mA.mse.toFixed(1);
+      document.getElementById('cmpAR2').textContent = fmtR2(mA.r2);
+      document.getElementById('cmpBMse').textContent = mB.mse.toFixed(1);
+      document.getElementById('cmpBR2').textContent = fmtR2(mB.r2);
+      var bBetter = mB.mse < mA.mse;
+      document.getElementById(bBetter ? 'cmpBMse' : 'cmpAMse').classList.add('win');
+      document.getElementById(bBetter ? 'cmpBR2' : 'cmpAR2').classList.add('win');
+      document.getElementById('cmpNote').textContent = bBetter
+        ? '기온에 풍속을 더한 모델(B)이 근소하게 더 좋습니다. 다만 개선 폭이 크지 않다는 점은, 미세먼지에 아직 고려하지 못한 다른 요인이 더 있을 수 있음을 보여줍니다.'
+        : '기온만 사용한 모델(A)이 이 평가 데이터에서는 더 좋게 나왔습니다. 변수를 추가한다고 항상 성능이 좋아지는 것은 아닙니다.';
+      document.getElementById('revealCompareBtn').classList.add('active');
+    };
+  })();
+
+  var opts = document.querySelectorAll('.qopt');
+  opts.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var card = btn.closest('.qcard');
+      var fb = card.querySelector('.qfeedback');
+      if(card.dataset.answered === '1') return;
+      card.dataset.answered='1';
+      card.querySelectorAll('.qopt').forEach(function(o){
+        if(o.dataset.correct==='true') o.classList.add('correct');
+        else if(o===btn) o.classList.add('wrong');
+      });
+      fb.textContent = btn.dataset.correct==='true' ? '정답입니다! 👏' : '아쉬워요. 초록색으로 표시된 답을 확인해 보세요.';
+    });
+  });
+
+  try{
+    var note = document.getElementById('reflectNote');
+    var saved = localStorage.getItem('regeval-reflect-note');
+    if(saved) note.value = saved;
+    note.addEventListener('input', function(){
+      try{ localStorage.setItem('regeval-reflect-note', note.value); }catch(e){}
+      document.getElementById('saveHint').textContent = '저장되었습니다 (이 브라우저에만 보관).';
+    });
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
