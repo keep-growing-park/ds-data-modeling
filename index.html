@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>데이터 모델링과 평가</title>
+<meta name="description" content="고등학교 2학년 데이터 과학 수업용 온라인 콘텐츠 목차 — 회귀 분석, 군집 분석, 연관 분석.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#EEF2ED;
+    --surface:#FFFFFF;
+    --surface-2:#E2E9E2;
+    --grid-line: rgba(20,32,26,0.09);
+    --ink:#152119;
+    --ink-soft:#4C5C53;
+    --ink-faint:#8A988E;
+    --accent:#0F6E63;
+    --accent-ink:#EAF8F5;
+    --accent-warm:#DE6C3D;
+    --accent-warm-ink:#FCEEE5;
+    --line-b:#B9C8BE;
+    --shadow: 0 1px 2px rgba(15,30,22,0.06), 0 8px 24px -12px rgba(15,30,22,0.18);
+    --radius: 14px;
+    --serif: 'Gowun Batang', 'Noto Serif KR', serif;
+    --sans: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0F1A15; --surface:#16221B; --surface-2:#1E2C24;
+      --grid-line: rgba(233,244,236,0.07);
+      --ink:#E9F3EC; --ink-soft:#A9BEAF; --ink-faint:#6E8478;
+      --accent:#4FD1B9; --accent-ink:#0C2622;
+      --accent-warm:#F0956A; --accent-warm-ink:#3A2113;
+      --line-b:#2C3D33;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -14px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1A15; --surface:#16221B; --surface-2:#1E2C24;
+    --grid-line: rgba(233,244,236,0.07);
+    --ink:#E9F3EC; --ink-soft:#A9BEAF; --ink-faint:#6E8478;
+    --accent:#4FD1B9; --accent-ink:#0C2622;
+    --accent-warm:#F0956A; --accent-warm-ink:#3A2113;
+    --line-b:#2C3D33;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -14px rgba(0,0,0,0.55);
+  }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; }
+  body{
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0/100% 42px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0/42px 100%,
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.7;
+    padding-inline:20px;
+    zoom: 1.4;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  @media (max-width:700px){
+    body{ zoom:1; }
+  }
+  h1,h2,h3{ font-family:var(--serif); font-weight:700; text-wrap:balance; margin:0; color:var(--ink); }
+  a{ color:var(--accent); }
+  img{ max-width:100%; }
+  .wrap{ max-width:min(1400px, 94vw); margin:0 auto; padding-block:48px 60px; }
+
+  .hero{ margin-bottom:40px; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--mono); font-size:12px; letter-spacing:.08em;
+    color:var(--accent); text-transform:uppercase;
+    background:var(--accent-ink); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    padding:5px 10px; border-radius:999px; margin-bottom:16px;
+  }
+  .hero h1{ font-size:clamp(28px,6vw,42px); line-height:1.2; }
+  .hero p{ color:var(--ink-soft); font-size:16px; margin-top:14px; }
+
+  .units-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; align-items:stretch; margin-block:20px; }
+  @media (max-width:860px){ .units-grid{ grid-template-columns:1fr; } }
+
+  .unit{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    box-shadow:var(--shadow); overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .unit-head{
+    display:flex; align-items:baseline; gap:12px; padding:18px 20px;
+    border-bottom:1px solid var(--line-b);
+  }
+  .unit-num{ font-family:var(--mono); color:var(--accent); font-weight:700; font-size:14px; flex:none; }
+  .unit-head h2{ font-size:18px; }
+  .unit-desc{ padding:14px 20px 0; color:var(--ink-soft); font-size:13.5px; }
+
+  .topics{ display:grid; gap:1px; background:var(--line-b); margin-top:16px; }
+  .topic{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--surface); padding:14px 20px; text-decoration:none; color:var(--ink);
+    transition:background .15s;
+  }
+  a.topic:hover{ background:var(--surface-2); }
+  .topic .t-name{ font-weight:600; font-size:15px; }
+  .topic .t-desc{ font-size:12.5px; color:var(--ink-faint); margin-top:2px; }
+  .topic .t-arrow{ font-family:var(--mono); color:var(--accent); flex:none; font-size:18px; }
+  .topic.soon{ cursor:default; }
+  .topic.soon .t-name{ color:var(--ink-faint); }
+  .topic.soon .t-badge{
+    font-family:var(--mono); font-size:11px; color:var(--ink-faint);
+    background:var(--surface-2); border-radius:999px; padding:3px 9px; flex:none;
+  }
+
+  footer{ padding-block:20px 40px; color:var(--ink-faint); font-size:12.5px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <span class="eyebrow">Ⅲ. 데이터 모델링과 평가</span>
+    <h1>데이터 모델링과 평가</h1>
+    <p>고등학교 2학년 데이터 과학 수업용 온라인 콘텐츠 목차입니다. 단원을 고르고, 그 아래 세부 주제를 눌러 해당 학습 페이지로 이동하세요. (Ⅲ-1. 데이터 모델과 모델링은 학습지·교과서로 진행하며, 이 사이트에는 없습니다.)</p>
+  </div>
+
+  <div class="units-grid">
+  <div class="unit">
+    <div class="unit-head"><span class="unit-num">02</span><h2>회귀 분석</h2></div>
+    <p class="unit-desc">수치형 값을 예측하는 회귀 모델을 배우고, 통계적 방법과 기계학습 방법을 비교합니다.</p>
+    <div class="topics">
+      <a class="topic" href="2-1-linear-regression.html">
+        <div><div class="t-name">선형 회귀</div><div class="t-desc">개념·오차 실험·통계적/기계학습 모델 비교·바이브 코딩</div></div>
+        <span class="t-arrow">→</span>
+      </a>
+      <div class="topic soon">
+        <div><div class="t-name">다중 회귀</div><div class="t-desc">여러 독립 변수로 예측하기</div></div>
+        <span class="t-badge">준비 중</span>
+      </div>
+      <div class="topic soon">
+        <div><div class="t-name">회귀 모델 평가</div><div class="t-desc">평균제곱오차, 결정계수</div></div>
+        <span class="t-badge">준비 중</span>
+      </div>
+      <div class="topic soon">
+        <div><div class="t-name">로지스틱 회귀</div><div class="t-desc">범주형 값을 분류하는 회귀</div></div>
+        <span class="t-badge">준비 중</span>
+      </div>
+      <div class="topic soon">
+        <div><div class="t-name">분류 모델 평가</div><div class="t-desc">오분류표, 정확도·정밀도·재현율</div></div>
+        <span class="t-badge">준비 중</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="unit">
+    <div class="unit-head"><span class="unit-num">03</span><h2>군집 분석</h2></div>
+    <p class="unit-desc">레이블 없는 데이터를 유사한 그룹으로 묶는 비지도학습을 배웁니다.</p>
+    <div class="topics">
+      <div class="topic soon">
+        <div><div class="t-name">군집화와 k-평균 알고리즘</div><div class="t-desc">군집화 개념, k값 정하기</div></div>
+        <span class="t-badge">준비 중</span>
+      </div>
+      <div class="topic soon">
+        <div><div class="t-name">군집 모델 평가</div><div class="t-desc">실루엣 분석</div></div>
+        <span class="t-badge">준비 중</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="unit">
+    <div class="unit-head"><span class="unit-num">04</span><h2>연관 분석</h2></div>
+    <p class="unit-desc">함께 나타나는 속성들 사이의 규칙을 찾아내는 방법을 배웁니다.</p>
+    <div class="topics">
+      <div class="topic soon">
+        <div><div class="t-name">연관 분석과 연관 규칙</div><div class="t-desc">장바구니 분석, 거래 행렬</div></div>
+        <span class="t-badge">준비 중</span>
+      </div>
+      <div class="topic soon">
+        <div><div class="t-name">지지도·신뢰도·향상도</div><div class="t-desc">연관 규칙 평가하기</div></div>
+        <span class="t-badge">준비 중</span>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <footer>고등학교 2학년 데이터 과학 「Ⅲ. 데이터 모델링과 평가」 온라인 콘텐츠</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,1260 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>선형 회귀 실험실</title>
+<meta name="description" content="고등학교 2학년 데이터 과학 수업용 — 교과서 118~127쪽 '선형 회귀'를 함께 펴 놓고 보는 인터랙티브 학습 페이지. 파이썬 실습 대신 바이브 코딩으로 확장합니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#EEF2ED;
+    --surface:#FFFFFF;
+    --surface-2:#E2E9E2;
+    --grid-line: rgba(20,32,26,0.09);
+    --ink:#152119;
+    --ink-soft:#4C5C53;
+    --ink-faint:#8A988E;
+    --accent:#0F6E63;
+    --accent-ink:#EAF8F5;
+    --accent-warm:#DE6C3D;
+    --accent-warm-ink:#FCEEE5;
+    --line-b:#B9C8BE;
+    --shadow: 0 1px 2px rgba(15,30,22,0.06), 0 8px 24px -12px rgba(15,30,22,0.18);
+    --radius: 14px;
+    --serif: 'Gowun Batang', 'Noto Serif KR', serif;
+    --sans: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0F1A15; --surface:#16221B; --surface-2:#1E2C24;
+      --grid-line: rgba(233,244,236,0.07);
+      --ink:#E9F3EC; --ink-soft:#A9BEAF; --ink-faint:#6E8478;
+      --accent:#4FD1B9; --accent-ink:#0C2622;
+      --accent-warm:#F0956A; --accent-warm-ink:#3A2113;
+      --line-b:#2C3D33;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -14px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1A15; --surface:#16221B; --surface-2:#1E2C24;
+    --grid-line: rgba(233,244,236,0.07);
+    --ink:#E9F3EC; --ink-soft:#A9BEAF; --ink-faint:#6E8478;
+    --accent:#4FD1B9; --accent-ink:#0C2622;
+    --accent-warm:#F0956A; --accent-warm-ink:#3A2113;
+    --line-b:#2C3D33;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -14px rgba(0,0,0,0.55);
+  }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; }
+  body{
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0/100% 42px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0/42px 100%,
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.7;
+    padding-inline:20px;
+    zoom: 1.4;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  @media (max-width:700px){
+    body{ zoom:1; }
+  }
+  h1,h2,h3{ font-family:var(--serif); font-weight:700; text-wrap:balance; margin:0; color:var(--ink); }
+  a{ color:var(--accent); }
+  img{ max-width:100%; }
+  [hidden]{ display:none!important; }
+  .wrap{ max-width: 860px; margin:0 auto; }
+  .num{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+
+  .topnav{
+    position:sticky; top:0;
+    z-index:20;
+    margin-inline:-20px; padding-inline:20px;
+    background:color-mix(in srgb, var(--bg) 86%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom:1px solid var(--line-b);
+  }
+  .topnav-in{
+    max-width:860px; margin:0 auto;
+    display:flex; align-items:center; gap:18px;
+    padding-block:12px;
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .topnav-in::-webkit-scrollbar{ display:none; }
+  .brand{ font-family:var(--serif); font-weight:700; font-size:15px; white-space:nowrap; flex:none; }
+  .brand .dot{ color:var(--accent-warm); }
+  .navlinks{ display:flex; gap:4px; }
+  .navlinks a{
+    white-space:nowrap; text-decoration:none; color:var(--ink-soft);
+    font-size:13px; font-weight:600; padding:6px 10px; border-radius:999px;
+  }
+  .navlinks a:hover{ background:var(--surface-2); color:var(--ink); }
+
+  .hero{ padding-block: 44px 8px; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--mono); font-size:12px; letter-spacing:.08em;
+    color:var(--accent); text-transform:uppercase;
+    background:var(--accent-ink); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    padding:5px 10px; border-radius:999px; margin-bottom:16px;
+  }
+  .hero h1{ font-size:clamp(30px,6vw,46px); line-height:1.15; }
+  .hero p.lede{ font-size:17px; color:var(--ink-soft); margin-top:14px; }
+
+  .textbook-banner{
+    margin-top:22px; display:flex; gap:12px; align-items:flex-start;
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:14px 18px; box-shadow:var(--shadow); font-size:13.5px; color:var(--ink-soft);
+  }
+  .textbook-banner .ic{ font-size:20px; flex:none; }
+  .textbook-banner b{ color:var(--ink); }
+
+  .goalbox{
+    margin-top:18px; background:var(--surface); border:1px solid var(--line-b);
+    border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow);
+    display:grid; gap:8px;
+  }
+  .goalbox .lbl{ font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--accent); text-transform:uppercase; }
+  .goalbox ul{ margin:0; padding-left:20px; color:var(--ink-soft); font-size:14.5px; }
+  .goalbox li{ margin-block:4px; }
+  .kw-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .kw{ font-family:var(--mono); font-size:12px; background:var(--surface-2); color:var(--ink-soft); border-radius:6px; padding:3px 8px; }
+
+  section{ padding-block:48px; border-top:1px solid var(--line-b); }
+  section:first-of-type{ border-top:none; }
+  .kicker{ font-family:var(--mono); font-size:12.5px; color:var(--ink-faint); letter-spacing:.04em; }
+  h2{ font-size:clamp(22px,4vw,30px); margin-top:6px; }
+  .lead{ color:var(--ink-soft); margin-top:10px; }
+
+  .chat{ display:grid; gap:10px; margin-block:24px; }
+  .bubble{
+    max-width:78%; padding:10px 14px; border-radius:16px; font-size:14.5px;
+    background:var(--surface); border:1px solid var(--line-b); box-shadow:var(--shadow);
+  }
+  .bubble.me{ justify-self:end; background:var(--accent); color:var(--accent-ink); border-color:transparent; border-bottom-right-radius:4px; }
+  .bubble.you{ justify-self:start; border-bottom-left-radius:4px; }
+
+  .formula-card{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:26px; box-shadow:var(--shadow); margin-block:22px;
+    display:grid; gap:18px;
+  }
+  .formula-big{
+    font-family:var(--mono); font-size:clamp(22px,5vw,30px); text-align:center;
+    display:flex; justify-content:center; gap:.3em; flex-wrap:wrap;
+  }
+  .formula-big .a{ color:var(--accent-warm); font-weight:600; }
+  .formula-big .b{ color:var(--accent); font-weight:600; }
+  .formula-legend{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:520px){ .formula-legend{ grid-template-columns:1fr; } }
+  .flegend-item{ display:flex; gap:10px; align-items:flex-start; }
+  .flegend-swatch{ width:14px; height:14px; border-radius:4px; margin-top:4px; flex:none; }
+  .flegend-item strong{ font-size:14px; }
+  .flegend-item span{ display:block; font-size:13px; color:var(--ink-soft); }
+
+  .tbquote{
+    background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+    border:1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+    border-radius:12px; padding:14px 18px; margin-block:18px;
+  }
+  .tbquote .h{
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    font-size:12px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.04em;
+    margin-bottom:8px;
+  }
+  .tbquote .h .src{ font-family:var(--mono); font-weight:600; text-transform:none; color:var(--ink-faint); letter-spacing:0; }
+  .tbquote p{ margin:0; font-size:14.5px; color:var(--ink); }
+  .tbquote p + p{ margin-top:6px; }
+
+  .aside{
+    background:var(--surface-2); border-left:3px solid var(--accent-warm);
+    border-radius:0 10px 10px 0; padding:16px 18px; margin-block:20px; font-size:14px; color:var(--ink-soft);
+  }
+  .aside strong{ color:var(--ink); }
+
+  details.card{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:4px 18px; margin-block:16px; box-shadow:var(--shadow);
+  }
+  details.card summary{
+    cursor:pointer; list-style:none; padding-block:14px; font-weight:600; font-size:15px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  details.card summary::-webkit-details-marker{ display:none; }
+  details.card summary::after{ content:'+'; font-family:var(--mono); font-size:20px; color:var(--accent); }
+  details.card[open] summary::after{ content:'–'; }
+  details.card .card-body{ padding-bottom:16px; color:var(--ink-soft); font-size:14.5px; }
+  details.card .card-body p{ margin:0 0 10px; }
+  details.card.nested{ box-shadow:none; background:var(--bg); margin-block:10px; }
+  details.card.nested summary{ font-size:14px; padding-block:10px; }
+
+  .lab{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:22px; margin-block:22px;
+  }
+  .lab-grid{ display:grid; grid-template-columns: 1.15fr 1fr; gap:24px; align-items:start; }
+  @media (max-width:720px){ .lab-grid{ grid-template-columns:1fr; } }
+  .lab svg{ width:100%; height:auto; display:block; }
+  .presets{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .btn{
+    font:inherit; font-family:var(--sans); font-size:13px; font-weight:600; cursor:pointer;
+    border:1px solid var(--line-b); background:var(--surface); color:var(--ink);
+    padding:8px 13px; border-radius:999px; transition:background .15s, border-color .15s;
+  }
+  .btn:hover{ border-color:var(--accent); }
+  .btn.active{ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .btn.warm.active{ background:var(--accent-warm); color:var(--accent-warm-ink); }
+  .btn.ghost{ background:transparent; }
+
+  .slider-row{ margin-block:14px; }
+  .slider-row .row-top{ display:flex; justify-content:space-between; align-items:baseline; font-size:13.5px; margin-bottom:6px; }
+  .slider-row .row-top b{ font-weight:600; }
+  .slider-row .row-top .val{ font-family:var(--mono); color:var(--accent-warm); font-weight:600; }
+  input[type="range"]{
+    -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:999px;
+    background:var(--surface-2); outline:none;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+    background:var(--accent); border:3px solid var(--surface); box-shadow:0 0 0 1px var(--line-b); cursor:pointer;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:18px; height:18px; border-radius:50%; background:var(--accent); border:3px solid var(--surface);
+    box-shadow:0 0 0 1px var(--line-b); cursor:pointer;
+  }
+
+  .readout{
+    font-family:var(--mono); font-size:15px; text-align:center; margin-block:14px;
+    background:var(--surface-2); border-radius:10px; padding:10px;
+  }
+  .readout .eq{ color:var(--ink-soft); }
+  .readout .a-val{ color:var(--accent-warm); font-weight:600; }
+  .readout .b-val{ color:var(--accent); font-weight:600; }
+
+  .mse-panel{ display:flex; gap:10px; }
+  .mse-tile{ flex:1; background:var(--surface-2); border-radius:10px; padding:12px; text-align:center; }
+  .mse-tile .l{ font-size:11.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; }
+  .mse-tile .v{ font-family:var(--mono); font-size:19px; font-weight:600; margin-top:2px; }
+
+  table.err-table{ width:100%; border-collapse:collapse; margin-top:14px; font-size:13px; }
+  table.err-table th, table.err-table td{
+    padding:7px 6px; text-align:right; border-bottom:1px solid var(--line-b); font-family:var(--mono);
+  }
+  table.err-table th:first-child, table.err-table td:first-child{ text-align:left; font-family:var(--sans); }
+  table.err-table th{ color:var(--ink-faint); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.03em; }
+
+  .model-cols{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-block:22px; }
+  @media (max-width:680px){ .model-cols{ grid-template-columns:1fr; } }
+  .model-card{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px;
+  }
+  .model-card .tag{
+    align-self:flex-start; font-family:var(--mono); font-size:11px; letter-spacing:.05em;
+    padding:3px 9px; border-radius:999px; text-transform:uppercase;
+  }
+  .model-card.stat .tag{ background:var(--accent-ink); color:var(--accent); }
+  .model-card.ml .tag{ background:var(--accent-warm-ink); color:var(--accent-warm); }
+  .model-card h3{ font-size:18px; }
+  .model-card p{ font-size:14px; color:var(--ink-soft); margin:0; }
+
+  .table-wrap{ overflow-x:auto; margin-block:20px; border-radius:var(--radius); border:1px solid var(--line-b); }
+  table.compare{ width:100%; border-collapse:collapse; min-width:560px; background:var(--surface); }
+  table.compare th, table.compare td{ padding:12px 16px; font-size:13.5px; text-align:left; border-bottom:1px solid var(--line-b); vertical-align:top; }
+  table.compare thead th{ background:var(--surface-2); font-weight:700; }
+  table.compare tbody th{ color:var(--ink-soft); font-weight:600; white-space:nowrap; }
+  table.compare tr:last-child td, table.compare tr:last-child th{ border-bottom:none; }
+
+  .code-block{
+    background:#0E1712; color:#DDEEE4; border-radius:12px; overflow:hidden; margin-block:16px;
+    border:1px solid color-mix(in srgb, var(--line-b) 60%, transparent);
+  }
+  .code-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:9px 14px; font-family:var(--mono); font-size:11.5px; color:#9FC2B2;
+    background:#0A1310; letter-spacing:.03em;
+  }
+  .code-block pre{ margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.65; white-space:pre-wrap; }
+  .tok-kw{ color:#77CDBB; } .tok-fn{ color:#E9C46A; } .tok-str{ color:#F0956A; } .tok-cls{ color:#8FC7F2; } .tok-com{ color:#6E8478; font-style:italic; }
+  .code-out{
+    font-family:var(--mono); font-size:12.5px; color:var(--ink-soft); background:var(--surface-2);
+    border:1px dashed var(--line-b); border-radius:8px; padding:9px 12px; margin-top:-6px; margin-bottom:16px;
+  }
+  .code-out .lbl{ color:var(--ink-faint); margin-right:6px; }
+
+  .steps{ display:grid; gap:18px; margin-block:20px; padding:0; list-style:none; counter-reset:st; }
+  .steps > li{ position:relative; padding-left:38px; }
+  .steps > li::before{
+    counter-increment:st; content: counter(st);
+    position:absolute; left:0; top:1px; width:26px; height:26px; border-radius:50%;
+    background:var(--accent); color:var(--accent-ink); font-family:var(--mono); font-weight:700; font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .steps .st{ font-weight:700; display:block; margin-bottom:8px; }
+
+  .summary-list{ display:grid; gap:10px; margin-block:20px; }
+  .summary-item{ display:flex; gap:12px; align-items:flex-start; background:var(--surface); border:1px solid var(--line-b); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow); }
+  .summary-item .n{ font-family:var(--mono); color:var(--accent); font-weight:700; flex:none; }
+  .summary-item p{ margin:0; font-size:14.5px; color:var(--ink-soft); }
+
+  .quiz{ display:grid; gap:16px; margin-block:20px; }
+  .qcard{ background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow); }
+  .qcard .qtext{ font-weight:600; margin-bottom:12px; font-size:15px; }
+  .qopts{ display:grid; gap:8px; }
+  .qopt{
+    text-align:left; font:inherit; font-family:var(--sans); font-size:14px; cursor:pointer;
+    border:1px solid var(--line-b); background:var(--bg); color:var(--ink); border-radius:10px; padding:10px 13px;
+  }
+  .qopt:hover{ border-color:var(--accent); }
+  .qopt.correct{ border-color:var(--accent); background:var(--accent-ink); color:var(--ink); }
+  .qopt.wrong{ border-color:var(--accent-warm); background:var(--accent-warm-ink); color:var(--ink); }
+  .qfeedback{ margin-top:10px; font-size:13.5px; color:var(--ink-soft); min-height:1.4em; }
+
+  .reflect{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:20px; box-shadow:var(--shadow); margin-block:22px;
+  }
+  .reflect textarea{
+    width:100%; min-height:84px; resize:vertical; border-radius:10px; border:1px solid var(--line-b);
+    background:var(--bg); color:var(--ink); font:inherit; font-size:14px; padding:10px 12px; margin-top:10px;
+  }
+  .reflect .savehint{ font-size:12px; color:var(--ink-faint); margin-top:6px; }
+
+  footer{ padding-block:36px 60px; color:var(--ink-faint); font-size:12.5px; text-align:center; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="topnav-in">
+    <a class="brand" href="index.html" style="text-decoration:none;">← <span class="dot">데이터 모델링과 평가</span></a>
+    <div class="navlinks">
+      <a href="#concept">개념</a>
+      <a href="#lab">실험</a>
+      <a href="#models">두 모델</a>
+      <a href="#extrapolate">외삽</a>
+      <a href="#vibe">바이브 코딩</a>
+      <a href="#summary">정리·퀴즈</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="hero">
+    <span class="eyebrow">Ⅲ. 데이터 모델링과 평가 · 회귀 분석 · 교과서 118~127쪽</span>
+    <h1>선형 회귀,<br>데이터로 미래를 예측하는 첫걸음</h1>
+    <p class="lede">과거의 경험이나 자료를 통해 미래를 대비한 경험이 있나요? 요하네스 케플러가 오랜 관측 기록에 가장 잘 들어맞는 궤도를 끝까지 찾아냈던 것처럼, 우리도 데이터 속의 규칙을 찾아 미래를 예측하는 방법, <b>선형 회귀</b>를 배워봅시다.</p>
+
+    <div class="textbook-banner">
+      <span class="ic">📖</span>
+      <div><b>교과서를 옆에 펴 두고 함께 보세요.</b> 이 페이지의 점선 상자는 교과서 원문을 그대로 인용한 부분입니다. 쪽수가 함께 적혀 있으니, 더 자세히 읽고 싶을 때 교과서에서 그 쪽을 바로 찾아볼 수 있습니다.</div>
+    </div>
+
+    <div class="goalbox">
+      <span class="lbl">학습 목표</span>
+      <ul>
+        <li>회귀 모델이 무엇인지 스스로 설명하고, 선형 회귀 분석을 직접 수행할 수 있다.</li>
+        <li>통계적 회귀 모델과 기계학습 기반 회귀 모델의 차이를 이해하고 상황에 맞게 적용할 수 있다.</li>
+      </ul>
+      <div class="kw-row">
+        <span class="kw">회귀 모델</span><span class="kw">선형 회귀</span><span class="kw">가중치</span>
+        <span class="kw">편향</span><span class="kw">오차</span><span class="kw">경사 하강법</span>
+        <span class="kw">평균제곱오차(MSE)</span>
+      </div>
+    </div>
+  </div>
+
+  <section id="concept">
+    <div class="kicker">01 · 개념 · 교과서 118~119쪽</div>
+    <h2>선형 회귀란 무엇일까?</h2>
+    <p class="lead">두 친구의 대화를 먼저 살펴봅시다. 우리는 이미 일상에서 "회귀적으로" 생각하고 있었을지도 몰라요.</p>
+
+    <div class="chat">
+      <div class="bubble you">어제 그 무협 웹소설 정주행했는데 50화까지 보는 데 3시간 좀 안 걸렸어.</div>
+      <div class="bubble me">오 꽤 봤네. 오늘도 이어서 볼 거야?</div>
+      <div class="bubble you">어. 근데 오늘은 80화까지 볼 건데, 그럼 시간이 얼마나 더 걸릴까?</div>
+      <div class="bubble me">화수가 더 많으니까 오늘이 어제보다는 오래 걸리지 않을까?</div>
+    </div>
+
+    <p>친구는 <b>화수</b>가 늘어나면 <b>정주행 시간</b>도 늘어날 것이라 예측했습니다. 이렇게 두 속성 사이에 <b>선 모양의 관계</b>가 있다고 가정하고, 데이터를 가장 잘 대표하는 선을 찾는 분석 방법을 교과서는 다음과 같이 정의합니다.</p>
+
+    <div class="tbquote">
+      <div class="h"><span>📖 교과서 원문</span><span class="src">『데이터 과학』 119쪽</span></div>
+      <p>"선형 회귀는 두 가지 이상의 속성 사이에 선 모양의 관계가 있다고 가정하고 데이터를 가장 잘 대표하는 선을 찾는 분석 방법이다."</p>
+    </div>
+
+    <p>여기서 우리가 맞히고 싶은 값(정주행 시간)이 <b>종속 변수</b>이고, 맞히는 데 참고하는 값(화수)이 <b>독립 변수</b>입니다. 이 둘을 가장 잘 이어 주는 선을 <b>회귀선</b>이라고 부르고, 독립 변수를 하나만 쓰는 경우를 <b>단순 선형 회귀</b>라고 합니다.</p>
+
+    <div class="formula-card">
+      <div class="formula-big">
+        <span>y</span><span>=</span><span class="a">a</span><span>x</span><span>+</span><span class="b">b</span>
+      </div>
+      <div class="formula-legend">
+        <div class="flegend-item">
+          <span class="flegend-swatch" style="background:var(--accent-warm)"></span>
+          <div><strong>a — 가중치 (기울기)</strong><span>x가 1 늘어날 때마다 y가 얼마씩 달라지는지를 나타내는 숫자로, 두 값이 얼마나 밀접하게 붙어 움직이는지를 보여줍니다.</span></div>
+        </div>
+        <div class="flegend-item">
+          <span class="flegend-swatch" style="background:var(--accent)"></span>
+          <div><strong>b — 편향 (절편)</strong><span>x를 전혀 반영하지 않았을 때, 즉 x=0일 때 남는 기본값입니다. x가 무엇이든 매번 똑같이 얹히는 부분이라고 생각하면 됩니다.</span></div>
+        </div>
+      </div>
+      <p style="margin:0; font-size:13.5px; color:var(--ink-soft); text-align:center;">a와 b처럼 회귀 모델에서 구하고자 하는 값을 <b>회귀 계수</b>라고 합니다. 최적의 a, b를 구하면 회귀선이 완성됩니다.</p>
+    </div>
+
+    <div class="aside">
+      <strong>‘회귀’라는 용어의 유래.</strong> 영국의 통계학자 프랜시스 골턴(Francis Galton)이 바로 이 이름을 붙인 사람입니다. 그는 여러 세대에 걸쳐 부모와 자녀의 키를 비교하다가 재미있는 패턴을 발견했는데, 키가 유난히 크거나 작은 부모에게서 태어난 아이일수록 오히려 평균 키에 더 가깝게 태어나더라는 것이었습니다. 이렇게 극단적인 값이 평균 쪽으로 '되돌아가는' 모습에서 회귀라는 이름이 나왔습니다.
+    </div>
+
+    <details class="card">
+      <summary>🔭 역사 속 회귀 분석 — 케플러와 화성 궤도</summary>
+      <div class="card-body">
+        <p>16세기 말, 덴마크 천문학자 튀코 브라헤는 망원경도 없이 20년 가까이 행성의 위치를 극도로 정밀하게 관측한 기록을 남겼습니다. 그가 세상을 떠난 뒤 이 자료를 물려받은 요하네스 케플러는, 당시 모두가 당연하게 여기던 "행성은 원 궤도로 돈다"는 가정으로 화성의 궤도를 계산했습니다.</p>
+        <p>그런데 실제 관측값과 원 궤도 모델 사이에 약 8분(0.13°)의 오차가 계속 남았습니다. 아주 작은 차이였지만, 브라헤의 관측이 그보다 훨씬 정밀하다는 것을 알던 케플러는 이 오차를 측정 실수가 아니라 <b>모델 자체가 틀렸다는 신호</b>로 받아들였습니다. 원 궤도 가정을 버리고 수년간 계산을 반복한 끝에, 타원 궤도로 가정하면 데이터에 훨씬 잘 들어맞는다는 것을 발견했습니다. 이것이 1609년에 발표된 케플러 제1법칙입니다. 데이터에 가장 잘 맞는 관계를 끝까지 찾아낸, 회귀 분석의 정신을 보여주는 사례입니다.</p>
+      </div>
+    </details>
+  </section>
+
+  <section id="lab">
+    <div class="kicker">02 · 실험 · 교과서 120쪽 활동</div>
+    <h2>오차를 비교하며 최적의 회귀선 찾기</h2>
+    <p class="lead">무협 웹소설을 정주행한 화수(x)와 정주행 시간(y) 데이터 5개가 있습니다. 아래에서 가중치 a와 편향 b를 직접 조절하며, 어떤 직선이 데이터를 가장 잘 대표하는지 찾아보세요. 교과서 120쪽의 "회귀선 ❶❷ 비교하기" 활동과 같은 방식입니다.</p>
+
+    <div class="lab">
+      <div class="presets">
+        <button class="btn" id="preset1" onclick="setPreset(1.5,100,'preset1')">회귀선 ❶ (a=1.5, b=100)</button>
+        <button class="btn" id="preset2" onclick="setPreset(2.5,50,'preset2')">회귀선 ❷ (a=2.5, b=50)</button>
+        <button class="btn warm ghost" id="bestBtn" onclick="toggleBest()">🏆 최적의 회귀선 비교해 보기</button>
+      </div>
+
+      <div class="lab-grid">
+        <div>
+          <svg id="plot" viewBox="0 0 460 320" role="img" aria-label="화수와 정주행 시간의 산점도와 회귀선"></svg>
+        </div>
+        <div>
+          <div class="slider-row">
+            <div class="row-top"><b>가중치 a (기울기)</b><span class="val" id="aVal">1.50</span></div>
+            <input type="range" id="aSlider" min="0" max="5" step="0.01" value="1.5">
+          </div>
+          <div class="slider-row">
+            <div class="row-top"><b>편향 b (절편)</b><span class="val" id="bVal">100</span></div>
+            <input type="range" id="bSlider" min="0" max="150" step="1" value="100">
+          </div>
+
+          <div class="readout">
+            <span class="eq">y =</span> <span class="a-val" id="eqA">1.50</span><span class="eq"> x +</span> <span class="b-val" id="eqB">100</span>
+          </div>
+
+          <div class="mse-panel">
+            <div class="mse-tile"><div class="l">오차 제곱합</div><div class="v num" id="sse">–</div></div>
+            <div class="mse-tile"><div class="l">평균제곱오차</div><div class="v num" id="mse">–</div></div>
+          </div>
+
+          <table class="err-table" id="errTable">
+            <thead><tr><th>x (화수)</th><th>실제 y</th><th>예측 y</th><th>|오차|</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="tbquote">
+      <div class="h"><span>📖 교과서 원문</span><span class="src">『데이터 과학』 120쪽</span></div>
+      <p>"오차 제곱의 총합 = (실젯값1 − 예측값1)² + (실젯값2 − 예측값2)² + ... + (실젯값n − 예측값n)²"</p>
+    </div>
+    <p class="lead" style="font-size:13.5px;">💡 실제 값과 모델이 내놓은 값이 벌어진 정도를 <b>오차</b>라고 부릅니다. 이 오차를 그냥 다 더하면 양수와 음수가 서로를 지워 버리기 때문에, <b>제곱</b>하거나 <b>절댓값</b>으로 바꿔서 비교해야 합니다. 그렇게 구한 합이 작을수록 더 믿을 만한 회귀선입니다.</p>
+  </section>
+
+  <section id="models">
+    <div class="kicker">03 · 두 가지 회귀 모델 · 교과서 120~127쪽</div>
+    <h2>최적의 선, 어떻게 찾을까?</h2>
+    <p class="lead">최적의 가중치와 편향을 구하는 방법에는 두 가지가 있습니다. 하나는 수식을 풀어 한 번에 계산하는 방법, 다른 하나는 컴퓨터가 조금씩 값을 보정해 나가는 방법입니다.</p>
+
+    <div class="model-cols">
+      <div class="model-card stat">
+        <span class="tag">통계적 회귀 모델</span>
+        <h3>수식을 풀어 한 번에 계산</h3>
+        <p>오차를 나타내는 식을 세운 뒤, 그 식을 풀어 곧바로 정답을 얻어냅니다. 독립 변수가 하나뿐이라면 아래 공식 하나로 계산이 끝납니다.</p>
+        <div class="formula-card" style="padding:14px; margin:6px 0 0;">
+          <div style="font-family:var(--mono); font-size:13px; text-align:center; line-height:2;">
+            a = Σ(x−x̄)(y−ȳ) / Σ(x−x̄)²<br>
+            b = ȳ − a·x̄
+          </div>
+        </div>
+        <p style="font-size:12.5px; color:var(--ink-faint);">인공지능 이전부터 쓰여온, 통계학에 기반한 방법입니다. (120~121쪽)</p>
+      </div>
+
+      <div class="model-card ml">
+        <span class="tag">기계학습 기반 회귀 모델</span>
+        <h3>조금씩 보정하며 다가가기</h3>
+        <p>데이터를 하나씩 살펴보면서 예측이 크게 빗나가면 계수를 큼직하게, 거의 맞으면 아주 조금만 바꾸는 식으로 계속 손봐 나갑니다. 이 방법을 <b>경사 하강법</b>이라 부릅니다.</p>
+        <svg viewBox="0 0 240 110" width="100%" height="100" aria-hidden="true">
+          <path d="M20,20 C60,100 180,100 220,20" fill="none" stroke="var(--accent-warm)" stroke-width="2.5"/>
+          <circle cx="70" cy="53" r="6" fill="var(--accent-warm)"/>
+          <text x="120" y="102" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--ink-faint)">회귀 계수 →</text>
+          <text x="8" y="14" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--ink-faint)">MSE</text>
+        </svg>
+        <p style="font-size:12.5px; color:var(--ink-faint);">회귀 계수를 바꿔가며 평균제곱오차를 그래프로 그리면 U자 모양이 나타나는데, 그 바닥을 향해 한 걸음씩 내려가는 셈입니다. (124~125쪽)</p>
+      </div>
+    </div>
+
+    <details class="card">
+      <summary>🖐️ 손으로 확인해보기 — 공식에 값 대입하기 <span style="font-weight:400; color:var(--ink-faint); font-size:12.5px;">(교과서 121쪽과 같은 활동, 선택)</span></summary>
+      <div class="card-body">
+        <p>시간이 부족하면 직접 계산하지 않아도 됩니다. 아래 단계를 하나씩 눌러 과정만 확인해도 충분합니다. <a href="#lab">실험</a> 절에서 쓴 데이터 (20,70), (35,120), (50,165), (65,210), (80,255)를 그대로 공식에 넣어 계산해 봅니다.</p>
+
+        <details class="card nested">
+          <summary>1단계 — 평균 구하기</summary>
+          <div class="card-body">
+            <p>x̄ = (20+35+50+65+80) ÷ 5 = <b class="num">50</b></p>
+            <p>ȳ = (70+120+165+210+255) ÷ 5 = <b class="num">164</b></p>
+          </div>
+        </details>
+
+        <details class="card nested">
+          <summary>2단계 — 편차와 편차의 곱 구하기</summary>
+          <div class="card-body">
+            <p>각 점에서 <span class="num">x−x̄</span>와 <span class="num">y−ȳ</span>를 구하고, 둘을 곱합니다.</p>
+            <table class="err-table">
+              <thead><tr><th>x</th><th>y</th><th>x−x̄</th><th>y−ȳ</th><th>(x−x̄)(y−ȳ)</th><th>(x−x̄)²</th></tr></thead>
+              <tbody>
+                <tr><td>20</td><td>70</td><td>−30</td><td>−94</td><td>2820</td><td>900</td></tr>
+                <tr><td>35</td><td>120</td><td>−15</td><td>−44</td><td>660</td><td>225</td></tr>
+                <tr><td>50</td><td>165</td><td>0</td><td>1</td><td>0</td><td>0</td></tr>
+                <tr><td>65</td><td>210</td><td>15</td><td>46</td><td>690</td><td>225</td></tr>
+                <tr><td>80</td><td>255</td><td>30</td><td>91</td><td>2730</td><td>900</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <details class="card nested">
+          <summary>3단계 — 각 열의 합 구하기</summary>
+          <div class="card-body">
+            <p>Σ(x−x̄)(y−ȳ) = 2820+660+0+690+2730 = <b class="num">6900</b></p>
+            <p>Σ(x−x̄)² = 900+225+0+225+900 = <b class="num">2250</b></p>
+          </div>
+        </details>
+
+        <details class="card nested">
+          <summary>4단계 — a, b 계산하고 확인하기</summary>
+          <div class="card-body">
+            <p>a = 6900 ÷ 2250 ≈ <b class="num">3.07</b></p>
+            <p>b = 164 − 3.07 × 50 ≈ <b class="num">10.5</b></p>
+            <p>즉 이 데이터에 가장 잘 맞는 회귀선은 <span class="num">y ≈ 3.07x + 10.5</span> 입니다. <a href="#lab">실험</a> 절에서 <b>🏆 최적의 회귀선 비교해 보기</b> 버튼을 눌렀을 때 그래프에 나온 식과 같은지 확인해 보세요. 버튼 하나가 순식간에 해 준 계산을, 우리는 방금 손으로 따라가 본 것입니다.</p>
+          </div>
+        </details>
+      </div>
+    </details>
+
+    <div class="lab" id="gdLab">
+      <div class="kicker" style="margin-bottom:6px;">🎛️ 경사 하강법 시뮬레이터 (선택)</div>
+      <p style="font-size:14px; color:var(--ink-soft); margin:0 0 16px;">통계적 회귀 모델은 공식으로 답을 한 번에 구합니다. 기계학습은 대신 <b>학습 횟수</b>만큼 조금씩 값을 고쳐 나갑니다. 같은 데이터로 실제 경사 하강법을 돌려, 학습 횟수와 학습률을 바꿔가며 오차가 줄어드는 모습을 직접 확인해 보세요.</p>
+
+      <div class="lab-grid">
+        <div>
+          <svg id="gdPlot" viewBox="0 0 460 320" role="img" aria-label="경사 하강법으로 찾아가는 회귀선"></svg>
+          <svg id="gdCurve" viewBox="0 0 460 150" role="img" aria-label="학습 횟수에 따른 평균제곱오차 변화 그래프" style="margin-top:12px;"></svg>
+        </div>
+        <div>
+          <div class="slider-row">
+            <div class="row-top"><b>학습 횟수</b><span class="val" id="gdIterVal">0회</span></div>
+            <input type="range" id="gdIter" min="0" max="300" step="1" value="0">
+          </div>
+          <div class="slider-row">
+            <div class="row-top"><b>학습률</b><span class="val" id="gdLrVal">0.250</span></div>
+            <input type="range" id="gdLr" min="0.001" max="0.6" step="0.001" value="0.25">
+          </div>
+          <div class="presets">
+            <button class="btn" id="gdStep" type="button">⏭ 한 스텝 학습</button>
+            <button class="btn" id="gdPlay" type="button">▶ 자동 재생</button>
+            <button class="btn ghost" id="gdReset" type="button">처음부터</button>
+          </div>
+
+          <div class="readout">
+            <span class="eq">y =</span> <span class="a-val" id="gdEqA">0.00</span><span class="eq"> x +</span> <span class="b-val" id="gdEqB">0.0</span>
+          </div>
+
+          <div class="mse-panel">
+            <div class="mse-tile"><div class="l">평균제곱오차</div><div class="v num" id="gdMse">–</div></div>
+            <div class="mse-tile"><div class="l">최적값과의 차이</div><div class="v num" id="gdGap">–</div></div>
+          </div>
+          <p style="font-size:12.5px; color:var(--ink-faint); margin-top:12px;">💡 학습률을 너무 크게 하면 오차가 줄어들다가 오히려 다시 커질 수 있습니다 — 직접 확인해 보세요.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tbquote">
+      <div class="h"><span>📖 교과서 원문</span><span class="src">『데이터 과학』 124쪽</span></div>
+      <p>"경사 하강법에서는 '평균제곱오차(MSE: Mean Squared Error)'라는 개념을 사용한다."</p>
+    </div>
+
+    <div class="table-wrap">
+      <table class="compare">
+        <thead><tr><th></th><th>통계적 회귀 모델</th><th>기계학습 기반 회귀 모델</th></tr></thead>
+        <tbody>
+          <tr><th>계산 방식</th><td>미분과 평균을 이용한 공식에 데이터를 대입해 최적의 계수를 단번에 계산해 낸다.</td><td>예측과 실제의 차이를 관찰하면서, 그 차이가 줄어드는 방향으로 계수를 여러 번에 걸쳐 갱신해 나간다.</td></tr>
+          <tr><th>주로 쓰는 목적</th><td>두 속성이 서로 얼마나, 어떤 방향으로 영향을 주고받는지 설명하려는 연구에 알맞다.</td><td>관계를 설명하는 데 그치지 않고, 아직 보지 못한 새로운 입력값을 알아맞히려는 목적에 주로 쓰인다.</td></tr>
+          <tr><th>알맞은 상황</th><td>두 변수의 관계가 대체로 하나의 직선이나 평면으로 설명될 만큼 단순한 경우</td><td>데이터의 양이 많고, 반복 계산을 빠르게 처리할 컴퓨팅 자원이 갖춰져 있는 경우</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lead" style="font-size:12.5px;">교과서 표 Ⅲ-2 (126~127쪽)의 비교 내용을 제 표현으로 다시 정리했습니다.</p>
+
+    <div class="aside">
+      <strong>회귀선도 결국 하나의 '모델'입니다.</strong> 지하철 노선도를 떠올려 보세요. 실제 지형·거리와는 많이 다르게 그려져 있지만, "어느 역에서 어느 역으로 갈아타야 하는가"라는 목적에는 오히려 그게 더 쓸모 있습니다. 회귀선도 마찬가지입니다. 그날의 우연한 사정, 사람마다 다른 세세한 차이는 다 걷어내고, "화수가 늘면 정주행 시간이 대략 이만큼 늘어난다"는 핵심 관계만 남긴 단순화된 지도입니다. 통계학자 조지 박스는 이를 두고 "모든 모델은 틀렸다. 다만 일부는 쓸모가 있다"는 말을 남겼습니다. 완벽한 예측이 아니라, 목적에 맞게 얼마나 쓸모 있는가가 회귀 모델을 판단하는 기준입니다.
+    </div>
+  </section>
+
+  <section id="extrapolate">
+    <div class="kicker">04 · 학습 기간과 예측의 한계</div>
+    <h2>같은 데이터, 다른 결론 — 학습 기간이 왜 중요할까</h2>
+    <p class="lead">회귀선은 <b>학습에 사용한 데이터의 범위 안에서만</b> 믿을 만합니다. 그 범위를 벗어난 값을 추정하는 것을 <b>외삽</b>이라고 하는데, 같은 데이터라도 어느 기간을 학습에 쓰느냐에 따라 기울기와 예측값이 크게 달라질 수 있습니다. 실제 병역판정검사 자료로 확인해 봅시다.</p>
+
+    <div class="lab">
+      <div class="presets">
+        <button class="btn active" id="exBtnFull" onclick="setExWindow(2008,'exBtnFull')">전체 (2008~2025년)</button>
+        <button class="btn" id="exBtn10" onclick="setExWindow(2016,'exBtn10')">최근 10년 (2016~2025년)</button>
+        <button class="btn" id="exBtn5" onclick="setExWindow(2021,'exBtn5')">최근 5년 (2021~2025년)</button>
+      </div>
+      <div class="lab-grid">
+        <div>
+          <svg id="exPlot" viewBox="0 0 460 320" role="img" aria-label="학습 기간에 따라 달라지는 회귀선과 2030년 예측값"></svg>
+        </div>
+        <div>
+          <div class="readout">
+            <span class="eq">y =</span> <span class="a-val" id="exEqA">–</span><span class="eq"> x</span> <span class="b-val" id="exEqB">–</span>
+          </div>
+          <div class="mse-panel">
+            <div class="mse-tile"><div class="l">학습에 쓴 해</div><div class="v num" id="exN">–</div></div>
+            <div class="mse-tile"><div class="l">2030년 예측</div><div class="v num" id="exPred">–</div></div>
+          </div>
+          <p style="font-size:13px; color:var(--ink-soft); margin-top:14px;" id="exNote">버튼을 눌러 학습 기간을 바꿔 보세요. 회색 점은 이번 학습에서 빠진 해입니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="aside">
+      <strong>세 예측값이 서로 다릅니다.</strong> 전체 18년으로 학습하면 2030년에 <b>41.1%</b>까지 오를 것으로 보이지만, 최근 5년만 보면 기울기가 거의 0에 가까워 <b>34.1%</b>로 거의 늘지 않는다는 정반대의 인상을 줍니다. 어느 쪽이 맞을지는 아무도 단정할 수 없습니다. 그래서 예측값을 말할 때는 숫자만 말하지 말고, <b>어떤 기간의 자료로 만든 예측인지</b>를 반드시 함께 밝혀야 합니다.
+    </div>
+  </section>
+
+  <section id="vibe">
+    <div class="kicker">04 · 바이브 코딩 실습</div>
+    <h2>진짜 데이터로, 앱 하나 만들기</h2>
+    <p class="lead">이번에는 실제 통계 데이터를 가지고 AI에게 프롬프트로 부탁해 <b>스트림릿(Streamlit) 앱</b>을 직접 만들어 봅니다. 코드를 한 줄씩 타이핑하는 대신, 무엇을 원하는지 정확하고 구체적으로 요청하는 연습을 합니다.</p>
+
+    <div class="aside">
+      <strong>오늘 쓰는 데이터.</strong> 2008년부터 2025년까지 <b>병역판정검사</b>를 받은 사람들의 <b>과체중·비만 비율</b> 통계입니다(<code class="num">dataset/military_service_bmi.csv</code>, <a href="https://github.com/keep-growing-park/ds-data-modeling/blob/main/dataset/military_service_bmi.csv" target="_blank" rel="noopener">미리 보기 ↗</a>). 여러분이 몇 년 뒤 직접 받게 될 검사와 같은 종류의 자료라, 회귀 분석으로 몇 년 뒤 수치를 예측해 보기에 딱 맞습니다.
+    </div>
+
+    <ol class="steps">
+      <li><span class="st">① 샘플 프롬프트 — 그대로 붙여 넣기</span>
+        <div class="code-block">
+          <div class="code-head">① AI에게 보낼 프롬프트</div>
+          <pre>"병역판정검사 체중 추이 예측기"라는 스트림릿 앱을 파일 하나로 만들어 줘.
+아래 주소의 CSV 파일을 읽어서 사용해:
+https://raw.githubusercontent.com/keep-growing-park/ds-data-modeling/main/dataset/military_service_bmi.csv
+이 파일의 열 이름은 연도, 과체중_25.0_29.9_비율(%), 비만_30.0이상_비율(%),
+과체중+비만_합계(%)이고, 인코딩은 UTF-8이야.
+
+연도(x)와 과체중+비만_합계(%)(y)의 산점도를 그리고,
+그 데이터에 가장 잘 맞는 회귀 직선을 함께 그려 줘. 그래프는 plotly로.
+학습에 사용한 연도의 시작과 끝, 그리고 이 직선이 데이터를
+얼마나 잘 설명하는지 나타내는 결정계수도 화면에 적어 줘.
+
+연도를 슬라이더로 고르면(2008년부터 2035년까지) 그 해의
+예상 비율이 크게 표시되게 해 줘.
+
+필요한 라이브러리 목록도 파일로 따로 줘. 버전 숫자는 빼고 이름만.</pre>
+        </div>
+        <details class="card">
+          <summary>선생님 확인용 예시 코드</summary>
+          <div class="card-body">
+            <p><span class="num">main.py</span>와 <span class="num">requirements.txt</span>, 두 파일로 저장합니다.</p>
+            <div class="code-block">
+              <div class="code-head">main.py</div>
+              <pre><span class="tok-kw">import</span> streamlit <span class="tok-kw">as</span> st
+<span class="tok-kw">import</span> pandas <span class="tok-kw">as</span> pd
+<span class="tok-kw">import</span> numpy <span class="tok-kw">as</span> np
+<span class="tok-kw">import</span> plotly.express <span class="tok-kw">as</span> px
+
+DATA_URL = <span class="tok-str">"https://raw.githubusercontent.com/keep-growing-park/ds-data-modeling/main/dataset/military_service_bmi.csv"</span>
+
+st.title(<span class="tok-str">"병역판정검사 체중 추이 예측기"</span>)
+
+df = pd.read_csv(DATA_URL)
+col = <span class="tok-str">"과체중+비만_합계(%)"</span>
+
+a, b = np.<span class="tok-fn">polyfit</span>(df[<span class="tok-str">"연도"</span>], df[col], <span class="tok-cls">1</span>)
+pred = a * df[<span class="tok-str">"연도"</span>] + b
+ss_res = <span class="tok-fn">float</span>(((df[col] - pred) ** <span class="tok-cls">2</span>).<span class="tok-fn">sum</span>())
+ss_tot = <span class="tok-fn">float</span>(((df[col] - df[col].mean()) ** <span class="tok-cls">2</span>).<span class="tok-fn">sum</span>())
+r2 = <span class="tok-cls">1</span> - ss_res / ss_tot
+
+fig = px.scatter(df, x=<span class="tok-str">"연도"</span>, y=col)
+fig.add_scatter(x=df[<span class="tok-str">"연도"</span>], y=pred, mode=<span class="tok-str">"lines"</span>, name=<span class="tok-str">"회귀 직선"</span>)
+st.plotly_chart(fig, width=<span class="tok-str">"stretch"</span>)
+st.caption(f<span class="tok-str">"학습에 사용한 연도: {df['연도'].min()}~{df['연도'].max()}년 · 결정계수 R² = {r2:.3f}"</span>)
+
+year = st.slider(<span class="tok-str">"연도를 고르세요"</span>, <span class="tok-cls">2008</span>, <span class="tok-cls">2035</span>, <span class="tok-cls">2026</span>)
+st.metric(f<span class="tok-str">"{year}년 예상 과체중+비만 비율"</span>, f<span class="tok-str">"{a * year + b:.1f}%"</span>)
+<span class="tok-kw">if</span> year &gt; df[<span class="tok-str">"연도"</span>].max():
+    st.info(<span class="tok-str">"학습 범위 밖의 외삽값입니다. 실제 미래 수치를 보장하지 않습니다."</span>)</pre>
+            </div>
+            <div class="code-block">
+              <div class="code-head">requirements.txt</div>
+              <pre>streamlit
+pandas
+numpy
+plotly</pre>
+            </div>
+          </div>
+        </details>
+      </li>
+      <li><span class="st">② AI가 준 코드 — 실행하고 직선을 읽는다</span>
+        받은 코드를 <span class="num">main.py</span> 파일 하나로 저장해 실행합니다. 산점도 위에 회귀 직선이 잘 그어졌는지 먼저 확인한 다음, 슬라이더를 2026년, 2030년으로 옮겨 보면서 예상 비율이 어떻게 달라지는지 살펴봅니다.
+      </li>
+      <li><span class="st">③ 개선 프롬프트 — 다른 지표와 함께 비교하기</span>
+        <div class="code-block">
+          <div class="code-head">③ 개선 프롬프트</div>
+          <pre>과체중 비율과 비만 비율도 각각 따로 회귀 직선을 구해서,
+세 개의 회귀 직선(과체중, 비만, 과체중+비만 합계)을
+한 그래프에 겹쳐서 보여 줘.
+세 지표 중 기울기가 가장 가파른, 즉 가장 빠르게 늘고 있는
+지표가 무엇인지 문장으로 알려 줘.</pre>
+        </div>
+        <p style="font-size:13.5px; color:var(--ink-soft); margin-top:8px;">과체중 비율과 비만 비율 중 어느 쪽이 더 빠르게 늘고 있나요? 그 차이가 무엇을 뜻할지 짝과 이야기해 보세요.</p>
+      </li>
+    </ol>
+
+    <div class="aside">
+      <strong>⚠️ 범위 밖의 예측은 조심해서 읽습니다.</strong> <a href="#extrapolate">위에서 확인한 것</a>처럼, 이 앱의 예측도 학습 기간(2008~2025년)을 벗어난 해에는 "지금까지의 추세가 그대로 이어진다"는 가정 위에 서 있을 뿐, 실제 미래를 보장하지 않습니다.
+    </div>
+  </section>
+
+  <section id="summary">
+    <div class="kicker">05 · 정리</div>
+    <h2>핵심 정리</h2>
+    <div class="summary-list">
+      <div class="summary-item"><span class="n">01</span><p>선형 회귀는 <b>y = ax + b</b>라는 식으로 데이터의 흐름을 가장 잘 담아내는 선을 찾는 방법이며, 독립 변수를 하나만 쓰면 <b>단순 선형 회귀</b>라고 한다.</p></div>
+      <div class="summary-item"><span class="n">02</span><p>실제 값과 모델의 예측이 벌어진 정도인 <b>오차</b>를 제곱해 합한 값이 작을수록 더 믿을 만한 회귀선이다.</p></div>
+      <div class="summary-item"><span class="n">03</span><p><b>통계적 회귀 모델</b>은 수식을 풀어 회귀 계수를 한 번에 계산하고, <b>기계학습 기반 회귀 모델</b>은 <b>경사 하강법</b>으로 계수를 조금씩 보정해 최적값에 접근한다.</p></div>
+    </div>
+
+    <h2 style="margin-top:36px;">개념 체크</h2>
+    <div class="quiz">
+      <div class="qcard">
+        <div class="qtext">Q1. 선형 회귀에서 "예측하려는 값"을 무엇이라고 부를까요?</div>
+        <div class="qopts">
+          <button class="qopt" data-correct="false">독립 변수</button>
+          <button class="qopt" data-correct="true">종속 변수</button>
+          <button class="qopt" data-correct="false">회귀 계수</button>
+        </div>
+        <div class="qfeedback"></div>
+      </div>
+      <div class="qcard">
+        <div class="qtext">Q2. 오차를 비교할 때 값을 제곱하거나 절댓값을 취하는 가장 큰 이유는?</div>
+        <div class="qopts">
+          <button class="qopt" data-correct="false">숫자를 더 크게 보이게 하려고</button>
+          <button class="qopt" data-correct="true">양수·음수 오차가 서로 상쇄되는 것을 막으려고</button>
+          <button class="qopt" data-correct="false">계산 속도를 빠르게 하려고</button>
+        </div>
+        <div class="qfeedback"></div>
+      </div>
+      <div class="qcard">
+        <div class="qtext">Q3. 컴퓨터 성능이 좋아지며 널리 쓰이게 된, 오차를 조금씩 줄여가며 최적의 회귀 계수를 찾는 방법은?</div>
+        <div class="qopts">
+          <button class="qopt" data-correct="false">평균제곱오차</button>
+          <button class="qopt" data-correct="false">통계적 회귀 모델</button>
+          <button class="qopt" data-correct="true">경사 하강법</button>
+        </div>
+        <div class="qfeedback"></div>
+      </div>
+    </div>
+
+    <div class="reflect">
+      <div style="font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--accent); text-transform:uppercase;">생각 나누기</div>
+      <p style="margin:10px 0 0; font-size:14.5px;">나 또는 주변 사람이 과거의 경험이나 자료를 바탕으로 미래를 대비했던 경험이 있다면 적어 봅시다.</p>
+      <textarea id="reflectNote" placeholder="예: 지난 시험 성적 추이를 보고 이번 시험 공부 시간을 정했다..."></textarea>
+      <div class="savehint" id="saveHint">이 브라우저에만 저장되는 나만의 메모입니다.</div>
+    </div>
+  </section>
+
+  <footer>선형 회귀 실험실 · 고등학교 2학년 데이터 과학 「Ⅲ. 데이터 모델링과 평가 — 02. 회귀 분석」 118~127쪽을 바탕으로 제작</footer>
+</div>
+
+<script>
+(function(){
+  var data = [
+    {x:20,y:70},{x:35,y:120},{x:50,y:165},{x:65,y:210},{x:80,y:255}
+  ];
+  var xDomain=[0,100], yDomain=[0,300];
+  var pad={left:46,right:14,top:14,bottom:34};
+  var vbW=460, vbH=320;
+  var plotW = vbW-pad.left-pad.right, plotH = vbH-pad.top-pad.bottom;
+
+  function sx(x){ return pad.left + (x-xDomain[0])/(xDomain[1]-xDomain[0])*plotW; }
+  function sy(y){ return pad.top + plotH - (y-yDomain[0])/(yDomain[1]-yDomain[0])*plotH; }
+
+  function liangBarsky(x0,y0,x1,y1,xmin,ymin,xmax,ymax){
+    var t0=0,t1=1, dx=x1-x0, dy=y1-y0;
+    var checks=[[-dx,x0-xmin],[dx,xmax-x0],[-dy,y0-ymin],[dy,ymax-y0]];
+    for(var i=0;i<4;i++){
+      var p=checks[i][0], q=checks[i][1];
+      if(p===0){ if(q<0) return null; }
+      else{
+        var r=q/p;
+        if(p<0){ if(r>t1) return null; if(r>t0) t0=r; }
+        else{ if(r<t0) return null; if(r<t1) t1=r; }
+      }
+    }
+    return [x0+t0*dx, y0+t0*dy, x0+t1*dx, y0+t1*dy];
+  }
+
+  function ols(pts){
+    var n=pts.length, sx_=0, sy_=0;
+    pts.forEach(function(p){ sx_+=p.x; sy_+=p.y; });
+    var mx=sx_/n, my=sy_/n;
+    var num=0, den=0;
+    pts.forEach(function(p){ num += (p.x-mx)*(p.y-my); den += (p.x-mx)*(p.x-mx); });
+    var a = num/den, b = my - a*mx;
+    return {a:a,b:b};
+  }
+
+  var svg = document.getElementById('plot');
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs){
+    var e = document.createElementNS(NS, tag);
+    for(var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  var dataLayer, lineLayer, bestLineLayer, axisLayer;
+
+  function buildStatic(){
+    axisLayer = el('g',{});
+    var yTicks=[0,50,100,150,200,250,300];
+    yTicks.forEach(function(t){
+      axisLayer.appendChild(el('line',{x1:pad.left,x2:vbW-pad.right,y1:sy(t),y2:sy(t),stroke:'var(--grid-line)','stroke-width':1}));
+      var lbl = el('text',{x:pad.left-8, y:sy(t)+4, 'text-anchor':'end','font-size':9,'font-family':'IBM Plex Mono, monospace', fill:'var(--ink-faint)'});
+      lbl.textContent = t;
+      axisLayer.appendChild(lbl);
+    });
+    var xTicks=[0,20,40,60,80,100];
+    xTicks.forEach(function(t){
+      var lbl = el('text',{x:sx(t), y: vbH-pad.bottom+16, 'text-anchor':'middle','font-size':9,'font-family':'IBM Plex Mono, monospace', fill:'var(--ink-faint)'});
+      lbl.textContent = t;
+      axisLayer.appendChild(lbl);
+    });
+    var xl = el('text',{x:vbW/2, y:vbH-4, 'text-anchor':'middle','font-size':10,'font-family':'IBM Plex Sans KR, sans-serif', fill:'var(--ink-soft)'});
+    xl.textContent='화수 (x)';
+    axisLayer.appendChild(xl);
+    var ylab = el('text',{x:12, y:pad.top+6, 'font-size':10,'font-family':'IBM Plex Sans KR, sans-serif', fill:'var(--ink-soft)'});
+    ylab.textContent='분';
+    axisLayer.appendChild(ylab);
+    svg.appendChild(axisLayer);
+
+    dataLayer = el('g',{});
+    data.forEach(function(p){
+      dataLayer.appendChild(el('circle',{cx:sx(p.x), cy:sy(p.y), r:5, fill:'var(--ink)', 'fill-opacity':0.78}));
+    });
+    svg.appendChild(dataLayer);
+
+    lineLayer = el('g',{id:'lineLayer'});
+    svg.appendChild(lineLayer);
+    bestLineLayer = el('g',{id:'bestLineLayer'});
+    svg.appendChild(bestLineLayer);
+  }
+  buildStatic();
+
+  var residLayer;
+  function render(){
+    var a = parseFloat(document.getElementById('aSlider').value);
+    var b = parseFloat(document.getElementById('bSlider').value);
+    document.getElementById('aVal').textContent = a.toFixed(2);
+    document.getElementById('bVal').textContent = b.toFixed(0);
+    document.getElementById('eqA').textContent = a.toFixed(2);
+    document.getElementById('eqB').textContent = b.toFixed(0);
+
+    while(lineLayer.firstChild) lineLayer.removeChild(lineLayer.firstChild);
+    if(residLayer){ while(residLayer.firstChild) residLayer.removeChild(residLayer.firstChild); }
+    else { residLayer = el('g',{}); svg.insertBefore(residLayer, dataLayer); }
+
+    var y0 = a*xDomain[0]+b, y1 = a*xDomain[1]+b;
+    var clip = liangBarsky(xDomain[0],y0,xDomain[1],y1, xDomain[0],yDomain[0],xDomain[1],yDomain[1]);
+    if(clip){
+      lineLayer.appendChild(el('line',{
+        x1:sx(clip[0]), y1:sy(clip[1]), x2:sx(clip[2]), y2:sy(clip[3]),
+        stroke:'var(--accent-warm)', 'stroke-width':2.5, 'stroke-linecap':'round'
+      }));
+    }
+
+    var sse=0;
+    var rows='';
+    data.forEach(function(p){
+      var pred = a*p.x+b;
+      var err = Math.abs(p.y-pred);
+      sse += (p.y-pred)*(p.y-pred);
+      residLayer.appendChild(el('line',{
+        x1:sx(p.x), y1:sy(p.y), x2:sx(p.x), y2:sy(pred),
+        stroke:'var(--accent-warm)', 'stroke-width':1, 'stroke-dasharray':'3 3', opacity:0.6
+      }));
+      rows += '<tr><td>'+p.x+'</td><td>'+p.y+'</td><td>'+pred.toFixed(1)+'</td><td>'+err.toFixed(1)+'</td></tr>';
+    });
+    document.querySelector('#errTable tbody').innerHTML = rows;
+    document.getElementById('sse').textContent = sse.toFixed(1);
+    document.getElementById('mse').textContent = (sse/data.length).toFixed(1);
+  }
+
+  var aSlider=document.getElementById('aSlider'), bSlider=document.getElementById('bSlider');
+  aSlider.addEventListener('input', function(){ clearPresetActive(); render(); });
+  bSlider.addEventListener('input', function(){ clearPresetActive(); render(); });
+
+  function clearPresetActive(){
+    document.getElementById('preset1').classList.remove('active');
+    document.getElementById('preset2').classList.remove('active');
+  }
+  window.setPreset = function(a,b,id){
+    aSlider.value=a; bSlider.value=b;
+    clearPresetActive();
+    document.getElementById(id).classList.add('active');
+    render();
+  };
+
+  var bestShown=false;
+  window.toggleBest = function(){
+    bestShown=!bestShown;
+    var btn=document.getElementById('bestBtn');
+    while(bestLineLayer.firstChild) bestLineLayer.removeChild(bestLineLayer.firstChild);
+    if(bestShown){
+      btn.classList.add('active');
+      var best = ols(data);
+      var y0=best.a*xDomain[0]+best.b, y1=best.a*xDomain[1]+best.b;
+      var clip = liangBarsky(xDomain[0],y0,xDomain[1],y1, xDomain[0],yDomain[0],xDomain[1],yDomain[1]);
+      if(clip){
+        bestLineLayer.appendChild(el('line',{
+          x1:sx(clip[0]), y1:sy(clip[1]), x2:sx(clip[2]), y2:sy(clip[3]),
+          stroke:'var(--accent)', 'stroke-width':2.5, 'stroke-dasharray':'7 5', 'stroke-linecap':'round'
+        }));
+      }
+      var lbl = el('text',{x:sx(320), y:sy(best.a*320+best.b)-10, 'font-size':10,'font-family':'IBM Plex Mono, monospace', fill:'var(--accent)', 'font-weight':600});
+      lbl.textContent = '최적선 y='+best.a.toFixed(2)+'x+'+best.b.toFixed(1);
+      bestLineLayer.appendChild(lbl);
+    } else {
+      btn.classList.remove('active');
+    }
+  };
+
+  render();
+
+  var opts = document.querySelectorAll('.qopt');
+  opts.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var card = btn.closest('.qcard');
+      var fb = card.querySelector('.qfeedback');
+      var already = card.dataset.answered === '1';
+      if(already) return;
+      card.dataset.answered='1';
+      card.querySelectorAll('.qopt').forEach(function(o){
+        if(o.dataset.correct==='true') o.classList.add('correct');
+        else if(o===btn) o.classList.add('wrong');
+      });
+      fb.textContent = btn.dataset.correct==='true' ? '정답입니다! 👏' : '아쉬워요. 초록색으로 표시된 답을 확인해 보세요.';
+    });
+  });
+
+  try{
+    var note = document.getElementById('reflectNote');
+    var saved = localStorage.getItem('linreg-reflect-note');
+    if(saved) note.value = saved;
+    note.addEventListener('input', function(){
+      try{ localStorage.setItem('linreg-reflect-note', note.value); }catch(e){}
+      document.getElementById('saveHint').textContent = '저장되었습니다 (이 브라우저에만 보관).';
+    });
+  }catch(e){}
+
+  (function(){
+    var gdPlot = document.getElementById('gdPlot');
+    if(!gdPlot) return;
+
+    var gAxes = el('g',{});
+    [0,50,100,150,200,250,300].forEach(function(t){
+      gAxes.appendChild(el('line',{x1:pad.left,x2:vbW-pad.right,y1:sy(t),y2:sy(t),stroke:'var(--grid-line)','stroke-width':1}));
+      var lbl = el('text',{x:pad.left-8, y:sy(t)+4, 'text-anchor':'end','font-size':9,'font-family':'IBM Plex Mono, monospace', fill:'var(--ink-faint)'});
+      lbl.textContent = t;
+      gAxes.appendChild(lbl);
+    });
+    [0,20,40,60,80,100].forEach(function(t){
+      var lbl = el('text',{x:sx(t), y: vbH-pad.bottom+16, 'text-anchor':'middle','font-size':9,'font-family':'IBM Plex Mono, monospace', fill:'var(--ink-faint)'});
+      lbl.textContent = t;
+      gAxes.appendChild(lbl);
+    });
+    gdPlot.appendChild(gAxes);
+    var gdDataLayer = el('g',{});
+    data.forEach(function(p){
+      gdDataLayer.appendChild(el('circle',{cx:sx(p.x), cy:sy(p.y), r:5, fill:'var(--ink)', 'fill-opacity':0.78}));
+    });
+    gdPlot.appendChild(gdDataLayer);
+    var gdLineLayer = el('g',{});
+    gdPlot.appendChild(gdLineLayer);
+
+    var optimal = ols(data);
+    var optMse = (function(){
+      var s=0; data.forEach(function(p){ var e=p.y-(optimal.a*p.x+optimal.b); s+=e*e; });
+      return s/data.length;
+    })();
+
+    function runGD(iterations, lr){
+      var n = data.length;
+      var xs = data.map(function(p){ return p.x/100; });
+      var ys = data.map(function(p){ return p.y; });
+      var aS=0, bS=0;
+      var history = [ys.reduce(function(s,y){ return s+y*y; },0)/n];
+      for(var i=0;i<iterations;i++){
+        var daS=0, dbS=0;
+        for(var j=0;j<n;j++){
+          var pred = aS*xs[j]+bS;
+          var err = pred-ys[j];
+          daS += err*xs[j];
+          dbS += err;
+        }
+        aS -= lr*(2/n)*daS;
+        bS -= lr*(2/n)*dbS;
+        var mse=0;
+        for(var k=0;k<n;k++){
+          var e2 = ys[k]-(aS*xs[k]+bS);
+          mse += e2*e2;
+        }
+        history.push(mse/n);
+      }
+      return { a: aS/100, b: bS, mse: history[history.length-1], history: history };
+    }
+
+    var cvbW=460, cvbH=150, cpad={left:46,right:14,top:12,bottom:26};
+    var cplotW=cvbW-cpad.left-cpad.right, cplotH=cvbH-cpad.top-cpad.bottom;
+    var cxMax=300, cyMax=32000;
+    function csx(i){ return cpad.left + (i/Math.max(1,cxMax))*cplotW; }
+    function csy(v){ var vv=Math.max(0,Math.min(cyMax, isFinite(v)?v:cyMax)); return cpad.top + cplotH - (vv/cyMax)*cplotH; }
+
+    var curveSvg = document.getElementById('gdCurve');
+    var cAxes = el('g',{});
+    [0,8000,16000,24000,32000].forEach(function(v){
+      cAxes.appendChild(el('line',{x1:cpad.left,x2:cvbW-cpad.right,y1:csy(v),y2:csy(v),stroke:'var(--grid-line)','stroke-width':1}));
+      var lbl=el('text',{x:cpad.left-6,y:csy(v)+3,'text-anchor':'end','font-size':8,'font-family':'IBM Plex Mono, monospace',fill:'var(--ink-faint)'});
+      lbl.textContent = v;
+      cAxes.appendChild(lbl);
+    });
+    var cxl=el('text',{x:cvbW/2,y:cvbH-4,'text-anchor':'middle','font-size':9,'font-family':'IBM Plex Sans KR, sans-serif',fill:'var(--ink-soft)'});
+    cxl.textContent='학습 횟수';
+    cAxes.appendChild(cxl);
+    var cyl=el('text',{x:10,y:cpad.top+6,'font-size':9,'font-family':'IBM Plex Sans KR, sans-serif',fill:'var(--ink-soft)'});
+    cyl.textContent='MSE';
+    cAxes.appendChild(cyl);
+    curveSvg.appendChild(cAxes);
+    var curveLine = el('polyline',{fill:'none', stroke:'var(--accent)', 'stroke-width':2});
+    curveSvg.appendChild(curveLine);
+    var curveDot = el('circle',{r:4, fill:'var(--accent-warm)'});
+    curveSvg.appendChild(curveDot);
+
+    function renderGdCurve(history){
+      cxMax = Math.max(300, history.length-1);
+      var pts = history.map(function(v,i){ return csx(i)+','+csy(v); }).join(' ');
+      curveLine.setAttribute('points', pts);
+      var lastI = history.length-1;
+      curveDot.setAttribute('cx', csx(lastI));
+      curveDot.setAttribute('cy', csy(history[lastI]));
+    }
+
+    var gdIterInput = document.getElementById('gdIter');
+    var gdLrInput = document.getElementById('gdLr');
+
+    function renderGd(iterOverride){
+      var iterations = (typeof iterOverride === 'number') ? iterOverride : parseInt(gdIterInput.value,10);
+      var lr = parseFloat(gdLrInput.value);
+      document.getElementById('gdIterVal').textContent = iterations+'회';
+      document.getElementById('gdLrVal').textContent = lr.toFixed(3);
+
+      var result = runGD(iterations, lr);
+      var safeA = isFinite(result.a) ? result.a : 0;
+      var safeB = isFinite(result.b) ? result.b : 0;
+      document.getElementById('gdEqA').textContent = safeA.toFixed(3);
+      document.getElementById('gdEqB').textContent = safeB.toFixed(1);
+
+      while(gdLineLayer.firstChild) gdLineLayer.removeChild(gdLineLayer.firstChild);
+      var y0=safeA*xDomain[0]+safeB, y1=safeA*xDomain[1]+safeB;
+      var clip = (isFinite(y0)&&isFinite(y1)) ? liangBarsky(xDomain[0],y0,xDomain[1],y1, xDomain[0],yDomain[0],xDomain[1],yDomain[1]) : null;
+      if(clip){
+        gdLineLayer.appendChild(el('line',{
+          x1:sx(clip[0]), y1:sy(clip[1]), x2:sx(clip[2]), y2:sy(clip[3]),
+          stroke:'var(--accent-warm)', 'stroke-width':2.5, 'stroke-linecap':'round'
+        }));
+      }
+
+      var m = result.mse;
+      var diverged = !isFinite(m) || m > 100000;
+      document.getElementById('gdMse').textContent = diverged ? '발산' : m.toFixed(1);
+      document.getElementById('gdGap').textContent = diverged ? '—' : ('+'+Math.max(0,m-optMse).toFixed(1));
+
+      renderGdCurve(result.history);
+      return { mse:m, diverged:diverged };
+    }
+
+    gdIterInput.addEventListener('input', function(){ renderGd(); });
+    gdLrInput.addEventListener('input', function(){ renderGd(); });
+
+    var playing=false, playTimer=null;
+    function stopPlaying(){
+      if(playing){ clearInterval(playTimer); playing=false; document.getElementById('gdPlay').textContent='▶ 자동 재생'; }
+    }
+
+    document.getElementById('gdStep').addEventListener('click', function(){
+      stopPlaying();
+      var maxV = parseInt(gdIterInput.max,10);
+      var next = Math.min(maxV, parseInt(gdIterInput.value,10)+1);
+      gdIterInput.value = next;
+      renderGd();
+    });
+
+    document.getElementById('gdPlay').addEventListener('click', function(){
+      var btn = this;
+      if(playing){ stopPlaying(); return; }
+      var lr = parseFloat(gdLrInput.value);
+      var tolerance = 0.3;
+      var CONVERGE_CAP = parseInt(gdIterInput.max,10);
+      var target = Math.min(CONVERGE_CAP, Math.max(20, Math.ceil(65/lr)));
+      var stepsPerTick = Math.max(1, Math.round(target/70));
+      playing=true; btn.textContent='⏸ 정지';
+      var cur=0;
+      playTimer = setInterval(function(){
+        cur = Math.min(target, cur+stepsPerTick);
+        var result = renderGd(cur);
+        var done = cur>=target || result.diverged || (!result.diverged && (result.mse-optMse) < tolerance);
+        if(done){
+          clearInterval(playTimer); playing=false; btn.textContent='▶ 자동 재생';
+          gdIterInput.value = Math.min(parseInt(gdIterInput.max,10), cur);
+        }
+      }, 30);
+    });
+
+    document.getElementById('gdReset').addEventListener('click', function(){
+      stopPlaying();
+      gdIterInput.value=0;
+      gdLrInput.value=0.25;
+      renderGd();
+    });
+
+    renderGd();
+  })();
+
+  (function(){
+    var exSvg = document.getElementById('exPlot');
+    if(exSvg){
+      var bmiData = [
+        {x:2008,y:22.8},{x:2009,y:21.7},{x:2010,y:21.5},{x:2011,y:21.4},{x:2012,y:22.0},
+        {x:2013,y:23.1},{x:2014,y:23.8},{x:2015,y:25.4},{x:2016,y:28.3},{x:2017,y:30.0},
+        {x:2018,y:31.0},{x:2019,y:31.4},{x:2020,y:32.5},{x:2021,y:34.6},{x:2022,y:34.5},
+        {x:2023,y:33.9},{x:2024,y:34.3},{x:2025,y:34.5}
+      ];
+      var exXDomain=[2006,2032], exYDomain=[15,45];
+      var expad={left:40,right:14,top:14,bottom:34};
+      var exVbW=460, exVbH=320;
+      var exPW = exVbW-expad.left-expad.right, exPH = exVbH-expad.top-expad.bottom;
+      function exsx(x){ return expad.left + (x-exXDomain[0])/(exXDomain[1]-exXDomain[0])*exPW; }
+      function exsy(y){ return expad.top + exPH - (y-exYDomain[0])/(exYDomain[1]-exYDomain[0])*exPH; }
+
+      var exAxes = el('g',{});
+      [15,20,25,30,35,40,45].forEach(function(t){
+        exAxes.appendChild(el('line',{x1:expad.left,x2:exVbW-expad.right,y1:exsy(t),y2:exsy(t),stroke:'var(--grid-line)','stroke-width':1}));
+        var lbl = el('text',{x:expad.left-8,y:exsy(t)+4,'text-anchor':'end','font-size':9,'font-family':'IBM Plex Mono, monospace',fill:'var(--ink-faint)'});
+        lbl.textContent = t;
+        exAxes.appendChild(lbl);
+      });
+      [2008,2013,2018,2023,2028].forEach(function(t){
+        var lbl = el('text',{x:exsx(t),y:exVbH-expad.bottom+16,'text-anchor':'middle','font-size':9,'font-family':'IBM Plex Mono, monospace',fill:'var(--ink-faint)'});
+        lbl.textContent = t;
+        exAxes.appendChild(lbl);
+      });
+      exSvg.appendChild(exAxes);
+
+      var exDataLayer = el('g',{});
+      bmiData.forEach(function(p){
+        exDataLayer.appendChild(el('circle',{cx:exsx(p.x), cy:exsy(p.y), r:4.5, fill:'var(--ink)', 'fill-opacity':0.75}));
+      });
+      exSvg.appendChild(exDataLayer);
+      var exDataCircles = exDataLayer.querySelectorAll('circle');
+
+      var exLineLayer = el('g',{});
+      exSvg.appendChild(exLineLayer);
+      var exMarkLayer = el('g',{});
+      exSvg.appendChild(exMarkLayer);
+
+      function exOls(pts){
+        var n=pts.length, sx_=0, sy_=0;
+        pts.forEach(function(p){ sx_+=p.x; sy_+=p.y; });
+        var mx=sx_/n, my=sy_/n;
+        var num=0, den=0;
+        pts.forEach(function(p){ num += (p.x-mx)*(p.y-my); den += (p.x-mx)*(p.x-mx); });
+        return {a: num/den, b: my - (num/den)*mx, n:n};
+      }
+
+      var TARGET_YEAR = 2030;
+      function renderEx(startYear){
+        var windowPts = bmiData.filter(function(p){ return p.x >= startYear; });
+        var r = exOls(windowPts);
+
+        bmiData.forEach(function(p, idx){
+          exDataCircles[idx].setAttribute('fill', p.x>=startYear ? 'var(--ink)' : 'var(--ink-faint)');
+          exDataCircles[idx].setAttribute('fill-opacity', p.x>=startYear ? 0.8 : 0.35);
+        });
+
+        while(exLineLayer.firstChild) exLineLayer.removeChild(exLineLayer.firstChild);
+        while(exMarkLayer.firstChild) exMarkLayer.removeChild(exMarkLayer.firstChild);
+
+        var y0 = r.a*exXDomain[0]+r.b, y1v = r.a*exXDomain[1]+r.b;
+        var clip = liangBarsky(exXDomain[0],y0,exXDomain[1],y1v, exXDomain[0],exYDomain[0],exXDomain[1],exYDomain[1]);
+        if(clip){
+          exLineLayer.appendChild(el('line',{
+            x1:exsx(clip[0]), y1:exsy(clip[1]), x2:exsx(clip[2]), y2:exsy(clip[3]),
+            stroke:'var(--accent-warm)', 'stroke-width':2.5, 'stroke-linecap':'round'
+          }));
+        }
+
+        var predY = r.a*TARGET_YEAR + r.b;
+        var clampedPredY = Math.max(exYDomain[0], Math.min(exYDomain[1], predY));
+        exMarkLayer.appendChild(el('circle',{cx:exsx(TARGET_YEAR), cy:exsy(clampedPredY), r:6, fill:'var(--surface)', stroke:'var(--accent-warm)', 'stroke-width':2.5}));
+        var lbl = el('text',{x:exsx(TARGET_YEAR)-8, y:exsy(clampedPredY)-10, 'text-anchor':'end', 'font-size':11, 'font-family':'IBM Plex Mono, monospace', fill:'var(--accent-warm)', 'font-weight':600});
+        lbl.textContent = TARGET_YEAR+' → '+predY.toFixed(1)+'%';
+        exMarkLayer.appendChild(lbl);
+
+        document.getElementById('exEqA').textContent = r.a.toFixed(3);
+        var bStr = (r.b>=0 ? '+ ' : '− ') + Math.abs(r.b).toFixed(1);
+        document.getElementById('exEqB').textContent = bStr;
+        document.getElementById('exN').textContent = startYear+'~2025 ('+r.n+'개)';
+        document.getElementById('exPred').textContent = predY.toFixed(1)+'%';
+      }
+
+      window.setExWindow = function(startYear, btnId){
+        ['exBtnFull','exBtn10','exBtn5'].forEach(function(id){ document.getElementById(id).classList.remove('active'); });
+        document.getElementById(btnId).classList.add('active');
+        renderEx(startYear);
+      };
+      renderEx(2008);
+    }
+  })();
+})();
+</script>
+</body>
+</html>
