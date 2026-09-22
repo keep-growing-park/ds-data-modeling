@@ -201,10 +201,12 @@
     background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
     box-shadow:var(--shadow); padding:22px; margin-block:22px;
   }
-  .lab-grid{ display:grid; grid-template-columns: 1.15fr 1fr; gap:24px; align-items:start; }
-  @media (max-width:720px){ .lab-grid{ grid-template-columns:1fr; } }
+  .lab-grid{ display:grid; grid-template-columns: 1fr; gap:18px; }
   .lab svg{ width:100%; height:auto; display:block; touch-action:none; cursor:grab; }
   .lab svg.grabbing{ cursor:grabbing; }
+  .lab-controls{ display:grid; grid-template-columns:1fr 1fr; gap:8px 28px; align-items:start; }
+  .lab-controls .readout, .lab-controls .mse-panel, .lab-controls .lab-note{ grid-column:1 / -1; }
+  @media (max-width:600px){ .lab-controls{ grid-template-columns:1fr; } }
   .presets{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
   .btn{
     font:inherit; font-family:var(--sans); font-size:13px; font-weight:600; cursor:pointer;
@@ -447,13 +449,13 @@
       </div>
       <div class="lab-grid">
         <div>
-          <svg id="mrPlot" viewBox="0 0 460 340" role="img" aria-label="기온·풍속을 바닥의 두 축으로, 미세먼지 예측값을 높이로 나타낸 회귀 평면과 실제 관측값을 함께 보여주는, 드래그로 회전 가능한 입체 그래프"></svg>
+          <svg id="mrPlot" viewBox="0 0 640 420" role="img" aria-label="기온·풍속·미세먼지를 각각 x·y·z축으로 나타낸, 눈금과 함께 드래그로 회전 가능한 입체 그래프"></svg>
           <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px;">
             <p style="font-size:11px; color:var(--ink-faint); margin:0;">🖱️ 그래프를 드래그하면 회전합니다. 표시된 점은 120개월 중 40개(3개월 간격) 표본이며, 오차 계산에는 120개월 전체를 사용합니다.</p>
             <button class="btn ghost" id="spinBtn" style="flex:none; font-size:12px; padding:6px 10px;">🔄 자동 회전</button>
           </div>
         </div>
-        <div>
+        <div class="lab-controls">
           <div class="slider-row">
             <div class="row-top"><b>a₁ 기온 계수</b><span class="val" id="mrA1Val">0.00</span></div>
             <input type="range" id="mrA1" min="-2" max="1" step="0.01" value="0">
@@ -468,7 +470,7 @@
           <div class="mse-panel">
             <div class="mse-tile"><div class="l">평균제곱오차</div><div class="v num" id="mrMse">–</div></div>
           </div>
-          <p style="font-size:12.5px; color:var(--ink-faint); margin-top:12px;" id="mrNote">편향 b는 두 계수에 맞춰 자동으로 계산됩니다. 기울어진 청록 면이 지금 계수로 만든 예측 평면이고, 주황 점은 실제 관측값입니다. 점과 면 사이 세로선(오차)이 짧을수록 예측이 정확합니다.</p>
+          <p class="lab-note" style="font-size:12.5px; color:var(--ink-faint); margin-top:4px;" id="mrNote">편향 b는 두 계수에 맞춰 자동으로 계산됩니다. 기울어진 청록 면이 지금 계수로 만든 예측 평면이고, 주황 점은 실제 관측값입니다. 점과 면 사이 세로선(오차)이 짧을수록 예측이 정확합니다.</p>
         </div>
       </div>
     </div>
@@ -682,7 +684,7 @@ scikit-learn</pre>
   };
 
   var svg = document.getElementById('mrPlot');
-  var vbW=460, vbH=340;
+  var vbW=640, vbH=420;
 
   var tMin = Math.floor(Math.min.apply(null, temps)/5)*5;
   var tMax = Math.ceil(Math.max.apply(null, temps)/5)*5;
@@ -698,7 +700,7 @@ scikit-learn</pre>
   // 드래그로 돌려 보는 등축 투영: azimuth(좌우 회전), elevation(위아래 기울기)
   var azimuth = 35*Math.PI/180, elevation = 24*Math.PI/180;
   var EL_MIN = 8*Math.PI/180, EL_MAX = 85*Math.PI/180;
-  var ox = 235, oy = 175, scale = 150;
+  var ox = 320, oy = 230, scale = 195;
   function project(t, w, z){
     var X = normT(t), Y = normW(w), Z = normZ(z);
     var x1 = X*Math.cos(azimuth) + Y*Math.sin(azimuth);
@@ -707,39 +709,50 @@ scikit-learn</pre>
     return [ ox + x1*scale, oy - vert*scale ];
   }
 
-  // 바닥 격자: 기온·풍속 평면 (PM10 = 최솟값 높이)
+  var TICK_FONT = 11.5, LABEL_FONT = 13.5;
+
+  // 바닥 격자: 기온·풍속 평면 (PM10 = 최솟값 높이). s=0번째 줄이 곧 기온축·풍속축(원점 모서리)이라
+  // 그 두 줄만 더 진하게 그려서 x·y축 역할을 하게 함.
   var floorG = el('g',{});
   svg.appendChild(floorG);
   var GRID_STEPS = 4;
   var floorLinesA = [], floorLinesB = [];
   for(var s=0; s<=GRID_STEPS; s++){
-    var lA = el('line',{stroke:'var(--grid-line)','stroke-width':1}); floorG.appendChild(lA); floorLinesA.push(lA);
-    var lB = el('line',{stroke:'var(--grid-line)','stroke-width':1}); floorG.appendChild(lB); floorLinesB.push(lB);
+    var mainStyle = (s===0) ? {stroke:'var(--ink-faint)','stroke-width':1.4} : {stroke:'var(--grid-line)','stroke-width':1};
+    var lA = el('line', mainStyle); floorG.appendChild(lA); floorLinesA.push(lA);
+    var lB = el('line', mainStyle); floorG.appendChild(lB); floorLinesB.push(lB);
   }
 
-  // 세로축(PM10)과 기온·풍속 축 이름표
+  // 세 축(기온·풍속·PM10)의 눈금과 이름표 — 원점 모서리(기온 최소, 풍속 최소)에서 뻗어나감
   var axG = el('g',{});
   svg.appendChild(axG);
-  var vAxisLine = el('line',{stroke:'var(--ink-faint)','stroke-width':1.2}); axG.appendChild(vAxisLine);
-  var vTicks = [0,0.5,1].map(function(){
-    var t = el('text',{'text-anchor':'end','font-size':8.5,'font-family':'IBM Plex Mono, monospace', fill:'var(--ink-faint)'});
-    axG.appendChild(t); return t;
-  });
-  var zLbl = el('text',{'text-anchor':'end','font-size':10,'font-family':'IBM Plex Sans KR, sans-serif', fill:'var(--ink-soft)','font-weight':600});
-  zLbl.textContent = 'PM10'; axG.appendChild(zLbl);
-  var tLbl = el('text',{'font-size':10,'font-family':'IBM Plex Sans KR, sans-serif', fill:'var(--ink-soft)','font-weight':600});
-  tLbl.textContent = '기온 →'; axG.appendChild(tLbl);
-  var wLbl = el('text',{'text-anchor':'end','font-size':10,'font-family':'IBM Plex Sans KR, sans-serif', fill:'var(--ink-soft)','font-weight':600});
-  wLbl.textContent = '← 풍속'; axG.appendChild(wLbl);
+  var vAxisLine = el('line',{stroke:'var(--ink-faint)','stroke-width':1.4}); axG.appendChild(vAxisLine);
+  function makeTicks(count, anchor){
+    var arr=[];
+    for(var i=0;i<count;i++){
+      arr.push(el('text',{'text-anchor':anchor,'font-size':TICK_FONT,'font-family':'IBM Plex Mono, monospace', fill:'var(--ink-faint)'}));
+      axG.appendChild(arr[arr.length-1]);
+    }
+    return arr;
+  }
+  var vTicks = makeTicks(3, 'end');
+  var tTicks = makeTicks(3, 'middle');
+  var wTicks = makeTicks(3, 'end');
+  var zLbl = el('text',{'text-anchor':'end','font-size':LABEL_FONT,'font-family':'IBM Plex Sans KR, sans-serif', fill:'var(--ink-soft)','font-weight':700});
+  zLbl.textContent = 'PM10 (㎍/㎥)'; axG.appendChild(zLbl);
+  var tLbl = el('text',{'text-anchor':'middle','font-size':LABEL_FONT,'font-family':'IBM Plex Sans KR, sans-serif', fill:'var(--ink-soft)','font-weight':700});
+  tLbl.textContent = '기온(℃) →'; axG.appendChild(tLbl);
+  var wLbl = el('text',{'text-anchor':'end','font-size':LABEL_FONT,'font-family':'IBM Plex Sans KR, sans-serif', fill:'var(--ink-soft)','font-weight':700});
+  wLbl.textContent = '← 풍속(m/s)'; axG.appendChild(wLbl);
 
   // 회귀 평면(슬라이더·회전에 따라 매번 다시 그림)
-  var planeFill = el('polygon',{fill:'var(--accent)','fill-opacity':0.35, stroke:'var(--accent)','stroke-width':1.6});
+  var planeFill = el('polygon',{fill:'var(--accent)','fill-opacity':0.35, stroke:'var(--accent)','stroke-width':2});
   svg.appendChild(planeFill);
   var MESH_STEPS = 4, meshLines = [];
   for(var mi=0; mi<=MESH_STEPS; mi++){
-    meshLines.push(el('line',{stroke:'var(--accent)','stroke-width':0.7,'stroke-opacity':0.5}));
+    meshLines.push(el('line',{stroke:'var(--accent)','stroke-width':0.9,'stroke-opacity':0.5}));
     svg.appendChild(meshLines[meshLines.length-1]);
-    meshLines.push(el('line',{stroke:'var(--accent)','stroke-width':0.7,'stroke-opacity':0.5}));
+    meshLines.push(el('line',{stroke:'var(--accent)','stroke-width':0.9,'stroke-opacity':0.5}));
     svg.appendChild(meshLines[meshLines.length-1]);
   }
 
@@ -749,8 +762,8 @@ scikit-learn</pre>
   var stemsLayer = el('g',{}), ptsLayer = el('g',{});
   svg.appendChild(stemsLayer);
   svg.appendChild(ptsLayer);
-  var stems = sampleIdx.map(function(){ var l=el('line',{stroke:'var(--accent-warm)','stroke-width':1,'stroke-opacity':0.55}); stemsLayer.appendChild(l); return l; });
-  var dots = sampleIdx.map(function(){ var c=el('circle',{r:3.2, fill:'var(--accent-warm)', stroke:'var(--surface)','stroke-width':0.8}); ptsLayer.appendChild(c); return c; });
+  var stems = sampleIdx.map(function(){ var l=el('line',{stroke:'var(--accent-warm)','stroke-width':1.3,'stroke-opacity':0.55}); stemsLayer.appendChild(l); return l; });
+  var dots = sampleIdx.map(function(){ var c=el('circle',{r:4, fill:'var(--accent-warm)', stroke:'var(--surface)','stroke-width':1}); ptsLayer.appendChild(c); return c; });
 
   var a1In = document.getElementById('mrA1'), a2In = document.getElementById('mrA2');
 
@@ -782,14 +795,26 @@ scikit-learn</pre>
     vAxisLine.setAttribute('x2',vTop[0]); vAxisLine.setAttribute('y2',vTop[1]);
     [0,0.5,1].forEach(function(f, idx){
       var z = zMin + f*(zMax-zMin), p = project(tMin, wMin, z);
-      vTicks[idx].setAttribute('x', p[0]-6); vTicks[idx].setAttribute('y', p[1]+3);
+      vTicks[idx].setAttribute('x', p[0]-8); vTicks[idx].setAttribute('y', p[1]+4);
       vTicks[idx].textContent = Math.round(z);
     });
-    zLbl.setAttribute('x', vTop[0]-8); zLbl.setAttribute('y', vTop[1]-8);
+    zLbl.setAttribute('x', vTop[0]-10); zLbl.setAttribute('y', vTop[1]-10);
+
+    [0,0.5,1].forEach(function(f, idx){
+      var t = tMin + f*(tMax-tMin), p = project(t, wMin, zMin);
+      tTicks[idx].setAttribute('x', p[0]); tTicks[idx].setAttribute('y', p[1]+18);
+      tTicks[idx].textContent = Math.round(t);
+    });
     var tFar = project(tMax, wMin, zMin);
-    tLbl.setAttribute('x', tFar[0]+6); tLbl.setAttribute('y', tFar[1]+4);
+    tLbl.setAttribute('x', tFar[0]); tLbl.setAttribute('y', tFar[1]+34);
+
+    [0,0.5,1].forEach(function(f, idx){
+      var w = wMin + f*(wMax-wMin), p = project(tMin, w, zMin);
+      wTicks[idx].setAttribute('x', p[0]-8); wTicks[idx].setAttribute('y', p[1]+4);
+      wTicks[idx].textContent = w.toFixed(1);
+    });
     var wFar = project(tMin, wMax, zMin);
-    wLbl.setAttribute('x', wFar[0]-6); wLbl.setAttribute('y', wFar[1]+4);
+    wLbl.setAttribute('x', wFar[0]-10); wLbl.setAttribute('y', wFar[1]+4);
 
     // 회귀 평면
     var c00 = project(tMin, wMin, predAt(tMin,wMin));
