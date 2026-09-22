@@ -72,9 +72,9 @@
   h1,h2,h3{ font-family:var(--serif); font-weight:700; text-wrap:balance; margin:0; color:var(--ink); }
   a{ color:var(--accent); }
   img{ max-width:100%; }
-  .wrap{ max-width:min(1400px, 94vw); margin:0 auto; padding-block:48px 60px; }
+  .wrap{ max-width:min(1200px, 92vw); margin:0 auto; padding-block:48px 60px; }
 
-  .hero{ margin-bottom:40px; }
+  .hero{ margin-bottom:48px; }
   .eyebrow{
     display:inline-flex; align-items:center; gap:8px;
     font-family:var(--mono); font-size:12px; letter-spacing:.08em;
@@ -85,7 +85,7 @@
   .hero h1{ font-size:clamp(28px,6vw,42px); line-height:1.2; }
   .hero p{ color:var(--ink-soft); font-size:16px; margin-top:14px; }
 
-  .units-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; align-items:stretch; margin-block:20px; }
+  .units-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:28px; align-items:stretch; margin-block:20px; }
   @media (max-width:860px){ .units-grid{ grid-template-columns:1fr; } }
 
   .unit{
@@ -94,22 +94,22 @@
     display:flex; flex-direction:column;
   }
   .unit-head{
-    display:flex; align-items:baseline; gap:12px; padding:18px 20px;
+    display:flex; align-items:baseline; gap:12px; padding:24px 26px;
     border-bottom:1px solid var(--line-b);
   }
   .unit-num{ font-family:var(--mono); color:var(--accent); font-weight:700; font-size:14px; flex:none; }
   .unit-head h2{ font-size:18px; }
-  .unit-desc{ padding:14px 20px 0; color:var(--ink-soft); font-size:13.5px; }
+  .unit-desc{ padding:18px 26px 6px; color:var(--ink-soft); font-size:13.5px; }
 
-  .topics{ display:grid; gap:1px; background:var(--line-b); margin-top:16px; }
+  .topics{ display:grid; gap:1px; background:var(--line-b); margin-top:20px; }
   .topic{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
-    background:var(--surface); padding:14px 20px; text-decoration:none; color:var(--ink);
+    background:var(--surface); padding:20px 26px; text-decoration:none; color:var(--ink);
     transition:background .15s;
   }
   a.topic:hover{ background:var(--surface-2); }
   .topic .t-name{ font-weight:600; font-size:15px; }
-  .topic .t-desc{ font-size:12.5px; color:var(--ink-faint); margin-top:2px; }
+  .topic .t-desc{ font-size:12.5px; color:var(--ink-faint); margin-top:4px; }
   .topic .t-arrow{ font-family:var(--mono); color:var(--accent); flex:none; font-size:18px; }
   .topic.soon{ cursor:default; }
   .topic.soon .t-name{ color:var(--ink-faint); }
