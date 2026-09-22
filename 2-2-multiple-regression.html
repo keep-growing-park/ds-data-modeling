@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>다중 회귀 실험실</title>
+<meta name="description" content="고등학교 2학년 데이터 과학 수업용 — 교과서 128~131쪽 '다중 선형 회귀'를 함께 펴 놓고 보는 인터랙티브 학습 페이지. 서울 기온·풍속·미세먼지 실제 데이터로 확인합니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#EEF2ED;
+    --surface:#FFFFFF;
+    --surface-2:#E2E9E2;
+    --grid-line: rgba(20,32,26,0.09);
+    --ink:#152119;
+    --ink-soft:#4C5C53;
+    --ink-faint:#8A988E;
+    --accent:#0F6E63;
+    --accent-ink:#EAF8F5;
+    --accent-warm:#DE6C3D;
+    --accent-warm-ink:#FCEEE5;
+    --line-b:#B9C8BE;
+    --shadow: 0 1px 2px rgba(15,30,22,0.06), 0 8px 24px -12px rgba(15,30,22,0.18);
+    --radius: 14px;
+    --serif: 'Gowun Batang', 'Noto Serif KR', serif;
+    --sans: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0F1A15; --surface:#16221B; --surface-2:#1E2C24;
+      --grid-line: rgba(233,244,236,0.07);
+      --ink:#E9F3EC; --ink-soft:#A9BEAF; --ink-faint:#6E8478;
+      --accent:#4FD1B9; --accent-ink:#0C2622;
+      --accent-warm:#F0956A; --accent-warm-ink:#3A2113;
+      --line-b:#2C3D33;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -14px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0F1A15; --surface:#16221B; --surface-2:#1E2C24;
+    --grid-line: rgba(233,244,236,0.07);
+    --ink:#E9F3EC; --ink-soft:#A9BEAF; --ink-faint:#6E8478;
+    --accent:#4FD1B9; --accent-ink:#0C2622;
+    --accent-warm:#F0956A; --accent-warm-ink:#3A2113;
+    --line-b:#2C3D33;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -14px rgba(0,0,0,0.55);
+  }
+  *{box-sizing:border-box;}
+  html,body{ margin:0; }
+  body{
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0/100% 42px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0/42px 100%,
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.7;
+    padding-inline:20px;
+    zoom: 1.4;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  @media (max-width:700px){
+    body{ zoom:1; }
+  }
+  h1,h2,h3{ font-family:var(--serif); font-weight:700; text-wrap:balance; margin:0; color:var(--ink); }
+  a{ color:var(--accent); }
+  img{ max-width:100%; }
+  [hidden]{ display:none!important; }
+  .wrap{ max-width: 860px; margin:0 auto; }
+  .num{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+
+  .topnav{
+    position:sticky; top:0;
+    z-index:20;
+    margin-inline:-20px; padding-inline:20px;
+    background:color-mix(in srgb, var(--bg) 86%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom:1px solid var(--line-b);
+  }
+  .topnav-in{
+    max-width:860px; margin:0 auto;
+    display:flex; align-items:center; gap:18px;
+    padding-block:12px;
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .topnav-in::-webkit-scrollbar{ display:none; }
+  .brand{ font-family:var(--serif); font-weight:700; font-size:15px; white-space:nowrap; flex:none; text-decoration:none; color:var(--ink); }
+  .brand .dot{ color:var(--accent-warm); }
+  .navlinks{ display:flex; gap:4px; }
+  .navlinks a{
+    white-space:nowrap; text-decoration:none; color:var(--ink-soft);
+    font-size:13px; font-weight:600; padding:6px 10px; border-radius:999px;
+  }
+  .navlinks a:hover{ background:var(--surface-2); color:var(--ink); }
+
+  .hero{ padding-block: 44px 8px; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--mono); font-size:12px; letter-spacing:.08em;
+    color:var(--accent); text-transform:uppercase;
+    background:var(--accent-ink); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    padding:5px 10px; border-radius:999px; margin-bottom:16px;
+  }
+  .hero h1{ font-size:clamp(30px,6vw,46px); line-height:1.15; }
+  .hero p.lede{ font-size:17px; color:var(--ink-soft); margin-top:14px; }
+
+  .textbook-banner{
+    margin-top:22px; display:flex; gap:12px; align-items:flex-start;
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:14px 18px; box-shadow:var(--shadow); font-size:13.5px; color:var(--ink-soft);
+  }
+  .textbook-banner .ic{ font-size:20px; flex:none; }
+  .textbook-banner b{ color:var(--ink); }
+
+  .goalbox{
+    margin-top:18px; background:var(--surface); border:1px solid var(--line-b);
+    border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow);
+    display:grid; gap:8px;
+  }
+  .goalbox .lbl{ font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--accent); text-transform:uppercase; }
+  .goalbox ul{ margin:0; padding-left:20px; color:var(--ink-soft); font-size:14.5px; }
+  .goalbox li{ margin-block:4px; }
+  .kw-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .kw{ font-family:var(--mono); font-size:12px; background:var(--surface-2); color:var(--ink-soft); border-radius:6px; padding:3px 8px; }
+
+  section{ padding-block:48px; border-top:1px solid var(--line-b); }
+  section:first-of-type{ border-top:none; }
+  .kicker{ font-family:var(--mono); font-size:12.5px; color:var(--ink-faint); letter-spacing:.04em; }
+  h2{ font-size:clamp(22px,4vw,30px); margin-top:6px; }
+  .lead{ color:var(--ink-soft); margin-top:10px; }
+
+  .chat{ display:grid; gap:10px; margin-block:24px; }
+  .bubble{
+    max-width:78%; padding:10px 14px; border-radius:16px; font-size:14.5px;
+    background:var(--surface); border:1px solid var(--line-b); box-shadow:var(--shadow);
+  }
+  .bubble.me{ justify-self:end; background:var(--accent); color:var(--accent-ink); border-color:transparent; border-bottom-right-radius:4px; }
+  .bubble.you{ justify-self:start; border-bottom-left-radius:4px; }
+
+  .formula-card{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:26px; box-shadow:var(--shadow); margin-block:22px;
+    display:grid; gap:18px;
+  }
+  .formula-big{
+    font-family:var(--mono); font-size:clamp(20px,4.6vw,28px); text-align:center;
+    display:flex; justify-content:center; gap:.28em; flex-wrap:wrap;
+  }
+  .formula-big .a{ color:var(--accent-warm); font-weight:600; }
+  .formula-big .b{ color:var(--accent); font-weight:600; }
+  .formula-legend{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:520px){ .formula-legend{ grid-template-columns:1fr; } }
+  .flegend-item{ display:flex; gap:10px; align-items:flex-start; }
+  .flegend-swatch{ width:14px; height:14px; border-radius:4px; margin-top:4px; flex:none; }
+  .flegend-item strong{ font-size:14px; }
+  .flegend-item span{ display:block; font-size:13px; color:var(--ink-soft); }
+
+  .tbquote{
+    background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+    border:1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+    border-radius:12px; padding:14px 18px; margin-block:18px;
+  }
+  .tbquote .h{
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    font-size:12px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.04em;
+    margin-bottom:8px;
+  }
+  .tbquote .h .src{ font-family:var(--mono); font-weight:600; text-transform:none; color:var(--ink-faint); letter-spacing:0; }
+  .tbquote p{ margin:0; font-size:14.5px; color:var(--ink); }
+  .tbquote p + p{ margin-top:6px; }
+
+  .aside{
+    background:var(--surface-2); border-left:3px solid var(--accent-warm);
+    border-radius:0 10px 10px 0; padding:16px 18px; margin-block:20px; font-size:14px; color:var(--ink-soft);
+  }
+  .aside strong{ color:var(--ink); }
+
+  details.card{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:4px 18px; margin-block:16px; box-shadow:var(--shadow);
+  }
+  details.card summary{
+    cursor:pointer; list-style:none; padding-block:14px; font-weight:600; font-size:15px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  details.card summary::-webkit-details-marker{ display:none; }
+  details.card summary::after{ content:'+'; font-family:var(--mono); font-size:20px; color:var(--accent); }
+  details.card[open] summary::after{ content:'–'; }
+  details.card .card-body{ padding-bottom:16px; color:var(--ink-soft); font-size:14.5px; }
+  details.card .card-body p{ margin:0 0 10px; }
+
+  .lab{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:22px; margin-block:22px;
+  }
+  .lab-grid{ display:grid; grid-template-columns: 1.15fr 1fr; gap:24px; align-items:start; }
+  @media (max-width:720px){ .lab-grid{ grid-template-columns:1fr; } }
+  .lab svg{ width:100%; height:auto; display:block; }
+  .presets{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .btn{
+    font:inherit; font-family:var(--sans); font-size:13px; font-weight:600; cursor:pointer;
+    border:1px solid var(--line-b); background:var(--surface); color:var(--ink);
+    padding:8px 13px; border-radius:999px; transition:background .15s, border-color .15s;
+  }
+  .btn:hover{ border-color:var(--accent); }
+  .btn.active{ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  .btn.warm.active{ background:var(--accent-warm); color:var(--accent-warm-ink); }
+  .btn.ghost{ background:transparent; }
+
+  .slider-row{ margin-block:14px; }
+  .slider-row .row-top{ display:flex; justify-content:space-between; align-items:baseline; font-size:13.5px; margin-bottom:6px; }
+  .slider-row .row-top b{ font-weight:600; }
+  .slider-row .row-top .val{ font-family:var(--mono); color:var(--accent-warm); font-weight:600; }
+  input[type="range"]{
+    -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:999px;
+    background:var(--surface-2); outline:none;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+    background:var(--accent); border:3px solid var(--surface); box-shadow:0 0 0 1px var(--line-b); cursor:pointer;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:18px; height:18px; border-radius:50%; background:var(--accent); border:3px solid var(--surface);
+    box-shadow:0 0 0 1px var(--line-b); cursor:pointer;
+  }
+
+  .readout{
+    font-family:var(--mono); font-size:14.5px; text-align:center; margin-block:14px;
+    background:var(--surface-2); border-radius:10px; padding:10px;
+  }
+  .readout .eq{ color:var(--ink-soft); }
+  .readout .a-val{ color:var(--accent-warm); font-weight:600; }
+  .readout .b-val{ color:var(--accent); font-weight:600; }
+
+  .mse-panel{ display:flex; gap:10px; }
+  .mse-tile{ flex:1; background:var(--surface-2); border-radius:10px; padding:12px; text-align:center; }
+  .mse-tile .l{ font-size:11.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; }
+  .mse-tile .v{ font-family:var(--mono); font-size:19px; font-weight:600; margin-top:2px; }
+
+  .model-cols{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-block:22px; }
+  @media (max-width:680px){ .model-cols{ grid-template-columns:1fr; } }
+
+  .code-block{
+    background:#0E1712; color:#DDEEE4; border-radius:12px; overflow:hidden; margin-block:16px;
+    border:1px solid color-mix(in srgb, var(--line-b) 60%, transparent);
+  }
+  .code-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:9px 14px; font-family:var(--mono); font-size:11.5px; color:#9FC2B2;
+    background:#0A1310; letter-spacing:.03em;
+  }
+  .code-block pre{ margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.65; white-space:pre-wrap; }
+  .tok-kw{ color:#77CDBB; } .tok-fn{ color:#E9C46A; } .tok-str{ color:#F0956A; } .tok-cls{ color:#8FC7F2; } .tok-com{ color:#6E8478; font-style:italic; }
+  .code-out{
+    font-family:var(--mono); font-size:12.5px; color:var(--ink-soft); background:var(--surface-2);
+    border:1px dashed var(--line-b); border-radius:8px; padding:9px 12px; margin-top:-6px; margin-bottom:16px;
+  }
+  .code-out .lbl{ color:var(--ink-faint); margin-right:6px; }
+
+  .steps{ display:grid; gap:18px; margin-block:20px; padding:0; list-style:none; counter-reset:st; }
+  .steps > li{ position:relative; padding-left:38px; }
+  .steps > li::before{
+    counter-increment:st; content: counter(st);
+    position:absolute; left:0; top:1px; width:26px; height:26px; border-radius:50%;
+    background:var(--accent); color:var(--accent-ink); font-family:var(--mono); font-weight:700; font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .steps .st{ font-weight:700; display:block; margin-bottom:8px; }
+
+  .summary-list{ display:grid; gap:10px; margin-block:20px; }
+  .summary-item{ display:flex; gap:12px; align-items:flex-start; background:var(--surface); border:1px solid var(--line-b); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow); }
+  .summary-item .n{ font-family:var(--mono); color:var(--accent); font-weight:700; flex:none; }
+  .summary-item p{ margin:0; font-size:14.5px; color:var(--ink-soft); }
+
+  .quiz{ display:grid; gap:16px; margin-block:20px; }
+  .qcard{ background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow); }
+  .qcard .qtext{ font-weight:600; margin-bottom:12px; font-size:15px; }
+  .qopts{ display:grid; gap:8px; }
+  .qopt{
+    text-align:left; font:inherit; font-family:var(--sans); font-size:14px; cursor:pointer;
+    border:1px solid var(--line-b); background:var(--bg); color:var(--ink); border-radius:10px; padding:10px 13px;
+  }
+  .qopt:hover{ border-color:var(--accent); }
+  .qopt.correct{ border-color:var(--accent); background:var(--accent-ink); color:var(--ink); }
+  .qopt.wrong{ border-color:var(--accent-warm); background:var(--accent-warm-ink); color:var(--ink); }
+  .qfeedback{ margin-top:10px; font-size:13.5px; color:var(--ink-soft); min-height:1.4em; }
+
+  .reflect{
+    background:var(--surface); border:1px solid var(--line-b); border-radius:var(--radius);
+    padding:20px; box-shadow:var(--shadow); margin-block:22px;
+  }
+  .reflect textarea{
+    width:100%; min-height:84px; resize:vertical; border-radius:10px; border:1px solid var(--line-b);
+    background:var(--bg); color:var(--ink); font:inherit; font-size:14px; padding:10px 12px; margin-top:10px;
+  }
+  .reflect .savehint{ font-size:12px; color:var(--ink-faint); margin-top:6px; }
+
+  footer{ padding-block:36px 60px; color:var(--ink-faint); font-size:12.5px; text-align:center; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="topnav-in">
+    <a class="brand" href="index.html">← <span class="dot">데이터 모델링과 평가</span></a>
+    <div class="navlinks">
+      <a href="#concept">개념</a>
+      <a href="#lab">실험</a>
+      <a href="#poly">다항회귀</a>
+      <a href="#vibe">바이브 코딩</a>
+      <a href="#summary">정리·퀴즈</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="hero">
+    <span class="eyebrow">Ⅲ. 데이터 모델링과 평가 · 다중 선형 회귀 · 교과서 128~131쪽</span>
+    <h1>다중 회귀,<br>여러 원인을 한 번에 고려하기</h1>
+    <p class="lede">지난 시간에는 화수 하나만으로 정주행 시간을 예측했습니다. 그런데 정말 화수만으로 다 설명될까요? 이번에는 독립 변수를 두 개 이상 함께 쓰는 <b>다중 회귀</b>를 배웁니다.</p>
+
+    <div class="textbook-banner">
+      <span class="ic">📖</span>
+      <div><b>교과서를 옆에 펴 두고 함께 보세요.</b> 이 페이지의 점선 상자는 교과서 원문을 그대로 인용한 부분입니다. 쪽수가 함께 적혀 있으니, 더 자세히 읽고 싶을 때 교과서에서 그 쪽을 바로 찾아볼 수 있습니다.</div>
+    </div>
+
+    <div class="goalbox">
+      <span class="lbl">학습 목표</span>
+      <ul>
+        <li>여러 개의 독립 변수를 함께 고려하는 다중 선형 회귀의 개념을 설명할 수 있다.</li>
+        <li>실제 데이터로 다중 회귀 모델을 만들고, 회귀 계수를 해석할 때의 주의점을 설명할 수 있다.</li>
+      </ul>
+      <div class="kw-row">
+        <span class="kw">다중 선형 회귀</span><span class="kw">회귀 평면</span><span class="kw">회귀 계수</span>
+        <span class="kw">다항 회귀</span><span class="kw">상관과 인과</span>
+      </div>
+    </div>
+  </div>
+
+  <section id="concept">
+    <div class="kicker">01 · 개념 · 교과서 128~129쪽</div>
+    <h2>화수만으로는 부족하다</h2>
+    <div class="chat">
+      <div class="bubble you">어제는 50화를 3시간 만에 봤는데, 오늘은 30화만 봤는데도 3시간 가까이 걸렸어.</div>
+      <div class="bubble me">어? 화수는 오늘이 더 적은데 왜 시간은 비슷해?</div>
+      <div class="bubble you">아, 오늘은 알림이 계속 와서 확인하느라 자주 멈췄거든.</div>
+      <div class="bubble me">그럼 화수 말고 딴짓한 횟수도 정주행 시간에 영향을 주는 거네.</div>
+    </div>
+    <p>화수 하나만으로는 정주행 시간이 다 설명되지 않습니다. <b>딴짓(알림 확인) 횟수</b>처럼 영향을 주는 다른 요인이 있을 수 있습니다. 이렇게 종속 변수에 영향을 주는 요인이 여러 개일 때, 독립 변수를 두 개 이상 사용하는 회귀 분석을 교과서는 다음과 같이 정의합니다.</p>
+
+    <div class="tbquote">
+      <div class="h"><span>📖 교과서 원문</span><span class="src">『데이터 과학』 128쪽</span></div>
+      <p>"다중 선형 회귀(multiple linear regression)는 영향을 미치는 요인이 여러 개인 경우에 종속 변수를 설명하기 위해 여러 개의 독립 변수를 이용하는 회귀 분석이다."</p>
+    </div>
+
+    <p>독립 변수가 하나면 회귀식은 평면 위의 <b>직선</b>이었습니다. 독립 변수가 두 개가 되면, 이제 예측값은 3차원 공간에서 하나의 <b>평면</b>이 됩니다. 독립 변수가 더 늘어나면 그보다 높은 차원의 초평면이 되지만, 원리는 같습니다.</p>
+
+    <figure style="margin:0 0 22px;">
+      <svg viewBox="0 0 640 220" role="img" aria-label="단순 선형 회귀는 직선, 다중 선형 회귀는 평면으로 나타남을 보여주는 그림">
+        <text x="140" y="20" text-anchor="middle" font-size="13" fill="var(--ink-soft)" font-family="IBM Plex Sans KR, sans-serif">단순 선형 회귀 — 직선</text>
+        <line x1="40" y1="180" x2="240" y2="180" stroke="var(--line-b)" stroke-width="1.5"/>
+        <line x1="40" y1="180" x2="40" y2="40" stroke="var(--line-b)" stroke-width="1.5"/>
+        <text x="245" y="184" font-size="11" fill="var(--ink-faint)">x</text>
+        <text x="30" y="40" font-size="11" fill="var(--ink-faint)" text-anchor="end">y</text>
+        <circle cx="70" cy="150" r="4" fill="var(--ink)" opacity=".7"/>
+        <circle cx="110" cy="130" r="4" fill="var(--ink)" opacity=".7"/>
+        <circle cx="150" cy="110" r="4" fill="var(--ink)" opacity=".7"/>
+        <circle cx="190" cy="85" r="4" fill="var(--ink)" opacity=".7"/>
+        <circle cx="220" cy="65" r="4" fill="var(--ink)" opacity=".7"/>
+        <line x1="55" y1="165" x2="230" y2="55" stroke="var(--accent-warm)" stroke-width="2.5" stroke-linecap="round"/>
+
+        <text x="470" y="20" text-anchor="middle" font-size="13" fill="var(--ink-soft)" font-family="IBM Plex Sans KR, sans-serif">다중 선형 회귀 — 평면</text>
+        <line x1="360" y1="185" x2="600" y2="185" stroke="var(--line-b)" stroke-width="1.5"/>
+        <line x1="360" y1="185" x2="360" y2="40" stroke="var(--line-b)" stroke-width="1.5"/>
+        <line x1="360" y1="185" x2="420" y2="205" stroke="var(--line-b)" stroke-width="1.5"/>
+        <text x="605" y="189" font-size="11" fill="var(--ink-faint)">x1</text>
+        <text x="424" y="212" font-size="11" fill="var(--ink-faint)">x2</text>
+        <text x="350" y="40" font-size="11" fill="var(--ink-faint)" text-anchor="end">y</text>
+        <polygon points="380,150 560,110 545,55 400,90" fill="var(--accent)" fill-opacity="0.28" stroke="var(--accent)" stroke-width="1.5"/>
+        <circle cx="430" cy="130" r="4" fill="var(--ink)" opacity=".8"/>
+        <line x1="430" y1="130" x2="430" y2="122" stroke="var(--accent-warm)" stroke-width="1.5" stroke-dasharray="2 2"/>
+        <circle cx="500" cy="100" r="4" fill="var(--ink)" opacity=".8"/>
+        <line x1="500" y1="100" x2="500" y2="92" stroke="var(--accent-warm)" stroke-width="1.5" stroke-dasharray="2 2"/>
+      </svg>
+      <figcaption style="font-size:12.5px; color:var(--ink-faint); margin-top:8px;">독립 변수가 하나면 직선, 두 개면 평면입니다. 점은 실젯값, 평면은 예측값을 나타냅니다.</figcaption>
+    </figure>
+
+    <div class="formula-card">
+      <div class="formula-big">
+        <span>y</span><span>=</span><span class="a">a₁</span><span>x₁</span><span>+</span><span class="a">a₂</span><span>x₂</span><span>+</span><span class="b">b</span>
+      </div>
+      <div class="formula-legend">
+        <div class="flegend-item">
+          <span class="flegend-swatch" style="background:var(--accent-warm)"></span>
+          <div><strong>a₁, a₂ — 회귀 계수</strong><span>각 독립 변수가 종속 변수에 미치는 영향력의 크기입니다. 독립 변수마다 하나씩 있습니다.</span></div>
+        </div>
+        <div class="flegend-item">
+          <span class="flegend-swatch" style="background:var(--accent)"></span>
+          <div><strong>b — 편향</strong><span>모든 독립 변수가 0일 때 남는 기본값으로, 단순 회귀에서와 뜻이 같습니다.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:16px;">간단한 두 식을 하나로 합쳐 보기</h3>
+    <p>회귀 계수를 실제로 구하는 계산은 뒤에서 앱으로 확인하기로 하고, 먼저 아이디어만 느껴 봅시다. 화수(x₁)만 고려했을 때와 딴짓 횟수(x₂)만 고려했을 때 각각 다음과 같은 간단한 회귀식을 얻었다고 가정해 보겠습니다.</p>
+    <div class="formula-card" style="padding:16px;">
+      <div style="font-family:var(--mono); font-size:14px; text-align:center; line-height:2;">
+        y = 3x₁ + 10 <span style="color:var(--ink-faint); font-size:12px;">(화수만 고려)</span><br>
+        y = 4x₂ + 5 <span style="color:var(--ink-faint); font-size:12px;">(딴짓 횟수만 고려)</span>
+      </div>
+    </div>
+    <p>두 식의 양변을 각각 더하면 2y = 3x₁ + 4x₂ + 15가 되고, 양변을 2로 나누면 다음과 같습니다.</p>
+    <div class="formula-card" style="padding:16px;">
+      <div style="font-family:var(--mono); font-size:16px; text-align:center;">y = 1.5x₁ + 2x₂ + 7.5</div>
+    </div>
+    <p style="font-size:13px; color:var(--ink-faint);">💡 실제 다중 회귀 계수는 이렇게 단순히 더해서 구하지 않고, 여러 독립 변수를 동시에 고려하는 계산으로 구합니다. 여기서는 "여러 식을 하나로 합친다"는 감각만 잡아 보는 것입니다.</p>
+
+    <p>독립 변수가 셋 이상이어도 원리는 같습니다. 일반화하면 다음과 같으며, a₁, a₂, ..., aₙ과 b가 이번에도 회귀 계수입니다.</p>
+    <div class="formula-card" style="padding:16px;">
+      <div style="font-family:var(--mono); font-size:15px; text-align:center;">y = a₁x₁ + a₂x₂ + ... + aₙxₙ + b</div>
+    </div>
+  </section>
+
+  <section id="lab">
+    <div class="kicker">02 · 실험 · 실제 데이터로 확인하기</div>
+    <h2>직관 대 실제 — 계수를 맞혀 보자</h2>
+    <p class="lead">이번에는 실제 통계로 실험합니다. 서울의 <b>평균기온</b>과 <b>평균풍속</b>으로 <b>미세먼지(PM10)</b> 농도를 예측해 봅시다. 슬라이더로 두 계수를 직접 맞혀 보고, 실제 정답과 비교해 보세요.</p>
+
+    <div class="aside">
+      <strong>오늘 쓰는 데이터.</strong> 국가통계포털(KOSIS)의 서울 2015~2024년 월별 평균기온·평균풍속(기상청 「기상관측통계」)과 미세먼지 PM10(기후에너지환경부 「대기오염도현황」) 자료를 합친 120개월치 데이터입니다(<code class="num">dataset/seoul_air_quality_2015_2024.csv</code>, <a href="https://github.com/keep-growing-park/ds-data-modeling/blob/main/dataset/seoul_air_quality_2015_2024.csv" target="_blank" rel="noopener">미리 보기 ↗</a>).
+    </div>
+
+    <div class="lab">
+      <div class="presets">
+        <button class="btn" id="guessBtn" onclick="setMR(-1,-2,'guessBtn')">내 직관대로 (기온·바람 둘 다 줄인다)</button>
+        <button class="btn warm ghost" id="answerBtn" onclick="revealMR()">🏆 정답 확인하기</button>
+      </div>
+      <div class="lab-grid">
+        <div>
+          <svg id="mrPlot" viewBox="0 0 460 320" role="img" aria-label="예측한 미세먼지 농도와 실제 미세먼지 농도를 비교하는 산점도"></svg>
+        </div>
+        <div>
+          <div class="slider-row">
+            <div class="row-top"><b>a₁ 기온 계수</b><span class="val" id="mrA1Val">0.00</span></div>
+            <input type="range" id="mrA1" min="-2" max="1" step="0.01" value="0">
+          </div>
+          <div class="slider-row">
+            <div class="row-top"><b>a₂ 풍속 계수</b><span class="val" id="mrA2Val">0.0</span></div>
+            <input type="range" id="mrA2" min="-10" max="15" step="0.1" value="0">
+          </div>
+          <div class="readout">
+            <span class="eq">PM10 =</span> <span class="a-val" id="mrEqA1">0.00</span><span class="eq">·기온 +</span> <span class="a-val" id="mrEqA2">0.0</span><span class="eq">·풍속 +</span> <span class="b-val" id="mrEqB">–</span>
+          </div>
+          <div class="mse-panel">
+            <div class="mse-tile"><div class="l">평균제곱오차</div><div class="v num" id="mrMse">–</div></div>
+          </div>
+          <p style="font-size:12.5px; color:var(--ink-faint); margin-top:12px;" id="mrNote">편향 b는 두 계수에 맞춰 자동으로 계산됩니다. 산점도의 점이 대각선에 가까울수록 예측이 정확한 것입니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="poly">
+    <div class="kicker">03 · 살짝 미리보기 · 교과서 130~131쪽</div>
+    <h2>곡선도 다중 회귀로 풀 수 있다면?</h2>
+    <p class="lead">지금까지는 독립 변수가 그대로(x₁, x₂) 회귀식에 들어갔습니다. 그런데 x²처럼 고차항이 필요한 경우는 어떻게 할까요? 고차항을 <b>새로운 독립 변수</b>로 보면, 지금 배운 다중 회귀 방식을 그대로 적용할 수 있습니다. 이런 회귀를 <b>다항 회귀</b>라고 합니다.</p>
+    <div class="formula-card" style="padding:16px;">
+      <div style="font-family:var(--mono); font-size:14px; text-align:center; line-height:1.9;">
+        y = a₁x₁ + a₂x₁² + b<br>
+        <span style="color:var(--ink-faint); font-size:12px;">↓ x₁² 을 새로운 변수 z로 보면</span><br>
+        y = a₁x₁ + a₂z + b
+      </div>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink-soft);">고차항을 많이 쓸수록 훈련 데이터에는 더 잘 들어맞는 곡선을 그릴 수 있지만, 그만큼 <b>과대적합</b>의 위험도 커집니다. 이 부분은 다음 절 "회귀 모델 평가"에서 직접 확인해 봅니다.</p>
+
+    <div class="aside">
+      <strong>🤔 어? 바람이 셀수록 미세먼지가 는다고?</strong> 위 실험에서 "정답 확인하기"를 눌러 보면, 풍속의 계수가 <b>양수</b>로 나옵니다. 바람이 강하면 미세먼지가 씻겨 나갈 것 같은데, 왜 반대로 나올까요? 한국의 봄철에는 <b>황사</b>가 강한 바람과 높은 미세먼지 농도를 동시에 몰고 오는 경우가 많습니다. 즉 계절이라는 숨은 요인이 두 값을 함께 밀어 올렸을 수 있습니다. 회귀 계수의 부호를 그대로 "원인과 결과"로 해석하면 안 되는 이유이며, 상관과 인과가 다르다는 사실을 다중 회귀에서도 잊지 말아야 합니다.
+    </div>
+  </section>
+
+  <section id="vibe">
+    <div class="kicker">04 · 바이브 코딩 실습</div>
+    <h2>진짜 데이터로, 다중 회귀 앱 만들기</h2>
+    <p class="lead">이번에도 AI에게 프롬프트로 부탁해 <b>스트림릿(Streamlit) 앱</b>을 만들어 봅니다. 위 실험에서 쓴 것과 같은 서울 기온·풍속·미세먼지 데이터를 사용합니다.</p>
+
+    <ol class="steps">
+      <li><span class="st">① 샘플 프롬프트 — 그대로 붙여 넣기</span>
+        <div class="code-block">
+          <div class="code-head">① AI에게 보낼 프롬프트</div>
+          <pre>"서울 미세먼지 다중 회귀 앱"이라는 스트림릿 앱을 파일 하나로 만들어 줘.
+아래 주소의 CSV 파일을 읽어서 사용해:
+https://raw.githubusercontent.com/keep-growing-park/ds-data-modeling/main/dataset/seoul_air_quality_2015_2024.csv
+이 파일의 열 이름은 year_month, avg_temp_c, avg_wind_speed_ms, pm10_ug_m3이야.
+
+avg_temp_c와 avg_wind_speed_ms 두 개를 독립 변수로,
+pm10_ug_m3을 종속 변수로 하는 다중 회귀 모델을 만들어 줘.
+두 독립 변수 각각의 회귀 계수와 절편을 화면에 보여 줘.
+그리고 이 모델이 예측한 값과 실제 값을 비교하는 산점도를 그려 줘.
+그래프는 plotly로.
+
+사용자가 기온과 풍속 값을 각각 슬라이더로 입력하면
+그 조건에서 예상되는 미세먼지 농도가 크게 표시되게 해 줘.
+
+필요한 라이브러리 목록도 파일로 따로 줘. 버전 숫자는 빼고 이름만.</pre>
+        </div>
+        <details class="card">
+          <summary>선생님 확인용 예시 코드</summary>
+          <div class="card-body">
+            <p><span class="num">main.py</span>와 <span class="num">requirements.txt</span>, 두 파일로 저장합니다.</p>
+            <div class="code-block">
+              <div class="code-head">main.py</div>
+              <pre><span class="tok-kw">import</span> streamlit <span class="tok-kw">as</span> st
+<span class="tok-kw">import</span> pandas <span class="tok-kw">as</span> pd
+<span class="tok-kw">import</span> plotly.express <span class="tok-kw">as</span> px
+<span class="tok-kw">from</span> sklearn.linear_model <span class="tok-kw">import</span> <span class="tok-cls">LinearRegression</span>
+
+DATA_URL = <span class="tok-str">"https://raw.githubusercontent.com/keep-growing-park/ds-data-modeling/main/dataset/seoul_air_quality_2015_2024.csv"</span>
+
+st.title(<span class="tok-str">"서울 미세먼지 다중 회귀 앱"</span>)
+
+df = pd.read_csv(DATA_URL)
+X = df[[<span class="tok-str">"avg_temp_c"</span>, <span class="tok-str">"avg_wind_speed_ms"</span>]]
+y = df[<span class="tok-str">"pm10_ug_m3"</span>]
+
+model = <span class="tok-cls">LinearRegression</span>()
+model.<span class="tok-fn">fit</span>(X, y)
+pred = model.<span class="tok-fn">predict</span>(X)
+
+c1, c2 = st.columns(<span class="tok-cls">2</span>)
+c1.metric(<span class="tok-str">"기온 계수"</span>, f<span class="tok-str">"{model.coef_[0]:.3f}"</span>)
+c2.metric(<span class="tok-str">"풍속 계수"</span>, f<span class="tok-str">"{model.coef_[1]:.3f}"</span>)
+st.caption(f<span class="tok-str">"절편: {model.intercept_:.2f}"</span>)
+
+fig = px.scatter(x=y, y=pred, labels={<span class="tok-str">"x"</span>: <span class="tok-str">"실제 PM10"</span>, <span class="tok-str">"y"</span>: <span class="tok-str">"예측 PM10"</span>})
+fig.add_shape(type=<span class="tok-str">"line"</span>, x0=y.<span class="tok-fn">min</span>(), y0=y.<span class="tok-fn">min</span>(), x1=y.<span class="tok-fn">max</span>(), y1=y.<span class="tok-fn">max</span>())
+st.plotly_chart(fig, width=<span class="tok-str">"stretch"</span>)
+
+temp = st.slider(<span class="tok-str">"기온(℃)"</span>, -<span class="tok-cls">10.0</span>, <span class="tok-cls">35.0</span>, <span class="tok-cls">15.0</span>)
+wind = st.slider(<span class="tok-str">"풍속(m/s)"</span>, <span class="tok-cls">0.0</span>, <span class="tok-cls">5.0</span>, <span class="tok-cls">2.2</span>)
+guess = model.predict([[temp, wind]])[<span class="tok-cls">0</span>]
+st.metric(<span class="tok-str">"예상 PM10 농도"</span>, f<span class="tok-str">"{guess:.1f} ㎍/㎥"</span>)</pre>
+            </div>
+            <div class="code-block">
+              <div class="code-head">requirements.txt</div>
+              <pre>streamlit
+pandas
+plotly
+scikit-learn</pre>
+            </div>
+          </div>
+        </details>
+      </li>
+      <li><span class="st">② AI가 준 코드 — 실행하고 계수를 읽는다</span>
+        받은 코드를 <span class="num">main.py</span> 파일 하나로 저장해 실행합니다. 기온 계수와 풍속 계수가 위 실험에서 "정답 확인하기"로 본 값과 같은지 비교해 봅니다.
+      </li>
+      <li><span class="st">③ 개선 프롬프트 — 계절도 함께 고려하기</span>
+        <div class="code-block">
+          <div class="code-head">③ 개선 프롬프트</div>
+          <pre>year_month 열의 앞 4자리는 연도, 뒤 2자리는 월이야.
+월이 3, 4, 5월이면 "봄", 아니면 "봄 아님"으로 구분하는
+열을 새로 만들어서 산점도에 색깔로 구분해서 보여 줘.
+봄철과 봄이 아닌 계절의 평균 미세먼지 농도도
+각각 계산해서 화면에 보여 줘.</pre>
+        </div>
+        <p style="font-size:13.5px; color:var(--ink-soft); margin-top:8px;">봄철 평균과 나머지 계절 평균의 차이가 크게 나온다면, 03절에서 이야기한 "황사" 가설이 데이터로도 뒷받침되는 셈입니다.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section id="summary">
+    <div class="kicker">05 · 정리</div>
+    <h2>핵심 정리</h2>
+    <div class="summary-list">
+      <div class="summary-item"><span class="n">01</span><p>다중 선형 회귀는 독립 변수를 두 개 이상 사용해 종속 변수를 예측하며, 독립 변수가 2개면 예측값은 하나의 <b>평면</b>으로 나타난다.</p></div>
+      <div class="summary-item"><span class="n">02</span><p>회귀 계수의 부호가 항상 직관과 일치하지는 않는다. 계절처럼 숨어 있는 다른 요인 때문일 수 있으므로, <b>상관과 인과</b>는 구분해서 해석해야 한다.</p></div>
+      <div class="summary-item"><span class="n">03</span><p>고차항을 새로운 독립 변수로 보면, <b>다항 회귀</b>도 다중 회귀와 같은 방식으로 계산할 수 있다.</p></div>
+    </div>
+
+    <h2 style="margin-top:36px;">개념 체크</h2>
+    <div class="quiz">
+      <div class="qcard">
+        <div class="qtext">Q1. 독립 변수가 2개인 다중 선형 회귀에서, 종속 변수를 가장 잘 설명하는 것은 무엇일까요?</div>
+        <div class="qopts">
+          <button class="qopt" data-correct="false">하나의 직선</button>
+          <button class="qopt" data-correct="true">하나의 평면</button>
+          <button class="qopt" data-correct="false">하나의 점</button>
+        </div>
+        <div class="qfeedback"></div>
+      </div>
+      <div class="qcard">
+        <div class="qtext">Q2. 실험에서 풍속의 회귀 계수가 양수로 나온 것에 대해 가장 알맞은 해석은?</div>
+        <div class="qopts">
+          <button class="qopt" data-correct="false">바람이 미세먼지를 직접 만들어 낸다</button>
+          <button class="qopt" data-correct="true">황사처럼 강한 바람과 미세먼지가 함께 나타나는 계절적 경향 때문일 수 있다</button>
+          <button class="qopt" data-correct="false">이 모델은 완전히 잘못되었으니 쓸모가 없다</button>
+        </div>
+        <div class="qfeedback"></div>
+      </div>
+      <div class="qcard">
+        <div class="qtext">Q3. 다항 회귀는 어떤 방식으로 계산할 수 있을까요?</div>
+        <div class="qopts">
+          <button class="qopt" data-correct="true">고차항을 새로운 독립 변수로 보고, 다중 회귀 방식으로 계산한다</button>
+          <button class="qopt" data-correct="false">선형 회귀로는 절대 계산할 수 없다</button>
+          <button class="qopt" data-correct="false">항상 그래프를 눈으로 보고 어림짐작한다</button>
+        </div>
+        <div class="qfeedback"></div>
+      </div>
+    </div>
+
+    <div class="reflect">
+      <div style="font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--accent); text-transform:uppercase;">생각 나누기</div>
+      <p style="margin:10px 0 0; font-size:14.5px;">내 성적이나 생활 속에서, 결과 하나에 영향을 주는 원인이 두 가지 이상이라고 생각되는 경우를 적어 봅시다.</p>
+      <textarea id="reflectNote" placeholder="예: 시험 점수는 공부 시간뿐 아니라 잠을 얼마나 잤는지에도 영향을 받는 것 같다..."></textarea>
+      <div class="savehint" id="saveHint">이 브라우저에만 저장되는 나만의 메모입니다.</div>
+    </div>
+  </section>
+
+  <footer>다중 회귀 실험실 · 고등학교 2학년 데이터 과학 「Ⅲ. 데이터 모델링과 평가 — 02. 회귀 분석」 128~131쪽을 바탕으로 제작 · 데이터 출처: 국가통계포털(KOSIS)</footer>
+</div>
+
+<script>
+(function(){
+  var temps=[-0.9,1,6.3,13.3,18.9,23.6,25.8,26.3,22.4,15.5,8.9,1.6,-3.2,0.2,7,14.1,19.6,23.6,26.2,28,23.1,16.1,6.8,1.2,-1.8,-0.2,6.3,13.9,19.5,23.3,26.9,25.9,22.1,16.4,5.6,-1.9,-4,-1.6,8.1,13,18.2,23.1,27.8,28.8,21.5,13.1,7.8,-0.6,-0.9,1,7.1,12.1,19.4,22.5,25.9,27.2,22.6,16.4,7.6,1.4,1.6,2.5,7.7,11.1,18,23.9,24.1,26.5,21.4,14.3,8,-0.3,-2.4,2.7,9,14.2,17.1,22.8,28.1,25.9,22.6,15.6,8.2,0.6,-2.2,-1.1,7.7,14.8,19.1,23.3,27.3,25.7,22.4,14.6,10,-2.8,-1.5,2.3,9.8,13.8,19.5,23.4,26.7,27.2,23.7,15.8,6.8,1.1,-0.5,3.8,7,16.3,18.5,24.6,26.6,29.3,25.5,16.7,9.7,0.8];
+  var winds=[2.6,2.9,3.1,3.1,3,2.5,2.8,2.4,2.3,2.3,2.7,2.3,2.5,2.8,2.4,2.4,2.4,2.1,2.1,2.1,2,2.1,2.2,2.2,2.3,2.4,2.4,2.6,2.4,2.4,2,2.3,2,1.9,2.1,1.8,1.9,2.2,1.9,2,1.7,1.7,1.5,1.7,1.6,1.5,1.4,1.8,1.8,1.8,2.1,1.9,2.1,1.7,1.8,1.6,2.2,2.1,2.2,2.1,2.1,2.3,2.5,3,2.4,2.3,2.4,2.3,2.5,2.1,2.2,2.2,2.5,2.6,2.4,2.6,2.4,2.2,2,2.1,2.3,2.1,2.1,2.3,2.2,2.6,2.5,2.7,2.6,2.5,2.1,2.3,2.4,2.2,2.1,2.3,2.4,2.3,2.3,2.5,2.3,2.2,2.1,2.2,2,1.9,2.6,2.4,2.3,2.5,2.7,2.4,2.4,2.2,2.5,2.1,2.3,2,2,2.2];
+  var pm10s=[49,84,71,45,45,35,30,34,28,44,33,48,50,45,64,71,56,46,33,34,37,38,52,48,53,46,60,56,63,41,33,21,32,29,42,50,52,53,52,52,42,37,24,22,20,28,52,43,66,57,69,41,52,29,26,25,21,31,40,42,42,41,45,44,35,36,21,23,19,33,42,42,38,48,67,42,61,33,24,22,15,27,45,39,43,40,41,45,33,22,25,20,22,25,39,38,48,46,68,63,38,28,26,21,20,28,30,36,36,33,49,50,30,31,20,24,16,23,29,34];
+  var n = temps.length;
+  var mT = temps.reduce(function(a,b){return a+b;},0)/n;
+  var mW = winds.reduce(function(a,b){return a+b;},0)/n;
+  var mY = pm10s.reduce(function(a,b){return a+b;},0)/n;
+
+  function ols2(xs1, xs2, ys){
+    var m1=xs1.reduce(function(a,b){return a+b;},0)/n, m2=xs2.reduce(function(a,b){return a+b;},0)/n, my=ys.reduce(function(a,b){return a+b;},0)/n;
+    var X = xs1.map(function(v,i){ return [1, v, xs2[i]]; });
+    function matT(A){ return A[0].map(function(_,j){ return A.map(function(r){ return r[j]; }); }); }
+    function matMul(A,B){
+      var res=[];
+      for(var i=0;i<A.length;i++){
+        res.push([]);
+        for(var j=0;j<B[0].length;j++){
+          var s=0;
+          for(var k=0;k<B.length;k++) s+=A[i][k]*B[k][j];
+          res[i].push(s);
+        }
+      }
+      return res;
+    }
+    function inv3(M){
+      var a=M[0][0],b=M[0][1],c=M[0][2];
+      var d=M[1][0],e=M[1][1],f=M[1][2];
+      var g=M[2][0],h=M[2][1],i=M[2][2];
+      var A=(e*i-f*h), B=-(d*i-f*g), C=(d*h-e*g);
+      var D=-(b*i-c*h), E=(a*i-c*g), F=-(a*h-b*g);
+      var G=(b*f-c*e), H=-(a*f-c*d), I=(a*e-b*d);
+      var det = a*A+b*B+c*C;
+      var cof=[[A,D,G],[B,E,H],[C,F,I]];
+      return cof.map(function(row){ return row.map(function(v){ return v/det; }); });
+    }
+    var Xt=matT(X), XtX=matMul(Xt,X), XtY=matMul(Xt, ys.map(function(v){return [v];}));
+    var beta = matMul(inv3(XtX), XtY).map(function(r){return r[0];});
+    return {b0:beta[0], a1:beta[1], a2:beta[2]};
+  }
+  var optimal = ols2(temps, winds, pm10s);
+
+  var el = function(tag, attrs){
+    var e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for(var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+
+  var svg = document.getElementById('mrPlot');
+  var pad = {left:46, right:14, top:14, bottom:34};
+  var vbW=460, vbH=320;
+  var plotW = vbW-pad.left-pad.right, plotH = vbH-pad.top-pad.bottom;
+  var domain = [0, 100];
+  function sx(v){ return pad.left + (v-domain[0])/(domain[1]-domain[0])*plotW; }
+  function sy(v){ return pad.top + plotH - (v-domain[0])/(domain[1]-domain[0])*plotH; }
+
+  var axes = el('g',{});
+  [0,20,40,60,80,100].forEach(function(t){
+    axes.appendChild(el('line',{x1:sx(t),x2:sx(t),y1:pad.top,y2:vbH-pad.bottom, stroke:'var(--grid-line)','stroke-width':1}));
+    axes.appendChild(el('line',{x1:pad.left,x2:vbW-pad.right,y1:sy(t),y2:sy(t), stroke:'var(--grid-line)','stroke-width':1}));
+    var lblx = el('text',{x:sx(t), y:vbH-pad.bottom+16, 'text-anchor':'middle','font-size':9,'font-family':'IBM Plex Mono, monospace', fill:'var(--ink-faint)'});
+    lblx.textContent = t;
+    axes.appendChild(lblx);
+    var lbly = el('text',{x:pad.left-8, y:sy(t)+4, 'text-anchor':'end','font-size':9,'font-family':'IBM Plex Mono, monospace', fill:'var(--ink-faint)'});
+    lbly.textContent = t;
+    axes.appendChild(lbly);
+  });
+  var xl = el('text',{x:vbW/2, y:vbH-4, 'text-anchor':'middle','font-size':10,'font-family':'IBM Plex Sans KR, sans-serif', fill:'var(--ink-soft)'});
+  xl.textContent = '실제 PM10 (㎍/㎥)';
+  axes.appendChild(xl);
+  var yl = el('text',{x:12, y:pad.top+6, 'font-size':10,'font-family':'IBM Plex Sans KR, sans-serif', fill:'var(--ink-soft)'});
+  yl.textContent = '예측';
+  axes.appendChild(yl);
+  axes.appendChild(el('line',{x1:sx(0), y1:sy(0), x2:sx(100), y2:sy(100), stroke:'var(--ink-faint)', 'stroke-width':1.5, 'stroke-dasharray':'5 4'}));
+  svg.appendChild(axes);
+
+  var ptsLayer = el('g',{});
+  svg.appendChild(ptsLayer);
+  for(var i=0;i<n;i++){
+    ptsLayer.appendChild(el('circle',{r:3.5, fill:'var(--accent-warm)', 'fill-opacity':0.55}));
+  }
+  var circles = ptsLayer.querySelectorAll('circle');
+
+  var a1In = document.getElementById('mrA1'), a2In = document.getElementById('mrA2');
+
+  function renderMR(){
+    var a1 = parseFloat(a1In.value), a2 = parseFloat(a2In.value);
+    var b = mY - a1*mT - a2*mW;
+    document.getElementById('mrA1Val').textContent = a1.toFixed(2);
+    document.getElementById('mrA2Val').textContent = a2.toFixed(1);
+    document.getElementById('mrEqA1').textContent = a1.toFixed(2);
+    document.getElementById('mrEqA2').textContent = a2.toFixed(1);
+    document.getElementById('mrEqB').textContent = (b>=0?'+ ':'− ')+Math.abs(b).toFixed(1);
+
+    var sse = 0;
+    for(var i=0;i<n;i++){
+      var pred = a1*temps[i] + a2*winds[i] + b;
+      var clamped = Math.max(0, Math.min(100, pred));
+      circles[i].setAttribute('cx', sx(Math.max(0,Math.min(100,pm10s[i]))));
+      circles[i].setAttribute('cy', sy(clamped));
+      sse += (pm10s[i]-pred)*(pm10s[i]-pred);
+    }
+    document.getElementById('mrMse').textContent = (sse/n).toFixed(1);
+  }
+
+  a1In.addEventListener('input', function(){ clearActive(); renderMR(); });
+  a2In.addEventListener('input', function(){ clearActive(); renderMR(); });
+  function clearActive(){
+    document.getElementById('guessBtn').classList.remove('active');
+    document.getElementById('answerBtn').classList.remove('active');
+  }
+  window.setMR = function(a1, a2, btnId){
+    a1In.value = a1; a2In.value = a2;
+    clearActive();
+    document.getElementById(btnId).classList.add('active');
+    renderMR();
+  };
+  window.revealMR = function(){
+    a1In.value = optimal.a1; a2In.value = optimal.a2;
+    clearActive();
+    document.getElementById('answerBtn').classList.add('active');
+    renderMR();
+    document.getElementById('mrNote').textContent = '실제 최적값: a₁≈'+optimal.a1.toFixed(2)+', a₂≈'+optimal.a2.toFixed(1)+'. 풍속 계수가 양수인 이유는 아래 03절에서 확인하세요.';
+  };
+  renderMR();
+
+  var opts = document.querySelectorAll('.qopt');
+  opts.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var card = btn.closest('.qcard');
+      var fb = card.querySelector('.qfeedback');
+      if(card.dataset.answered === '1') return;
+      card.dataset.answered='1';
+      card.querySelectorAll('.qopt').forEach(function(o){
+        if(o.dataset.correct==='true') o.classList.add('correct');
+        else if(o===btn) o.classList.add('wrong');
+      });
+      fb.textContent = btn.dataset.correct==='true' ? '정답입니다! 👏' : '아쉬워요. 초록색으로 표시된 답을 확인해 보세요.';
+    });
+  });
+
+  try{
+    var note = document.getElementById('reflectNote');
+    var saved = localStorage.getItem('mreg-reflect-note');
+    if(saved) note.value = saved;
+    note.addEventListener('input', function(){
+      try{ localStorage.setItem('mreg-reflect-note', note.value); }catch(e){}
+      document.getElementById('saveHint').textContent = '저장되었습니다 (이 브라우저에만 보관).';
+    });
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
