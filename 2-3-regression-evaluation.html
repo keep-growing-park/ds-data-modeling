@@ -391,14 +391,15 @@
         <span>R²</span><span>=</span><span>1</span><span>−</span>
         <span class="frac"><span class="fline a">SSE</span><span>SST</span></span>
       </div>
+      <p style="text-align:center; font-size:12.5px; color:var(--ink-faint); margin:-6px 0 0;">SSE = 오차제곱합 · SST = 총제곱합</p>
       <div class="formula-legend">
         <div class="flegend-item">
           <span class="flegend-swatch" style="background:var(--accent-warm)"></span>
-          <div><strong>SSE</strong><span>실젯값과 <b>내 모델</b>의 예측값 차이를 제곱해 더한 값. 이미 배운 오차제곱합입니다.</span></div>
+          <div><strong>SSE — 오차제곱합</strong><span>실젯값과 <b>내 모델</b>의 예측값 차이를 제곱해 더한 값. 이미 배운 오차제곱합입니다.</span></div>
         </div>
         <div class="flegend-item">
           <span class="flegend-swatch" style="background:var(--ink-faint)"></span>
-          <div><strong>SST</strong><span>실젯값과 <b>평균값</b>의 차이를 제곱해 더한 값. "모델 없이 평균만 찍었을 때"의 기준점입니다.</span></div>
+          <div><strong>SST — 총제곱합</strong><span>실젯값과 <b>평균값</b>의 차이를 제곱해 더한 값. "모델 없이 평균만 찍었을 때"의 기준점입니다.</span></div>
         </div>
       </div>
     </div>
@@ -432,8 +433,8 @@
             <input type="range" id="r2B" min="0" max="150" step="0.1" value="100">
           </div>
           <div class="mse-panel">
-            <div class="mse-tile"><div class="l">SSE (내 모델)</div><div class="v num" id="r2Sse">–</div></div>
-            <div class="mse-tile"><div class="l">SST (고정값)</div><div class="v num" id="r2Sst">–</div></div>
+            <div class="mse-tile"><div class="l">오차제곱합 SSE</div><div class="v num" id="r2Sse">–</div></div>
+            <div class="mse-tile"><div class="l">총제곱합 SST</div><div class="v num" id="r2Sst">–</div></div>
           </div>
           <div class="mse-panel" style="margin-top:10px;">
             <div class="mse-tile"><div class="l">결정계수 R²</div><div class="v num" id="r2Val" style="font-size:21px;">–</div></div>
